@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Relatório de Ocorrência de Morte Violenta - CRPT Brumado</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#7f1d1d">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <style>
+    :root{
+      --bg:#f3f4f6;
+      --card:#ffffff;
+      --primary:#7f1d1d;
+      --primary2:#991b1b;
+      --dark:#111827;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --ok:#166534;
+      --blue:#1d4ed8;
+      --shadow:0 8px 24px rgba(0,0,0,.10);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      background:linear-gradient(180deg,#fff 0%,var(--bg) 28%);
+      color:var(--dark);
+      padding:12px;
+    }
+    .app{max-width:760px;margin:0 auto 30px;}
+    .header{
+      background:linear-gradient(135deg,var(--primary),var(--primary2));
+      color:#fff;
+      padding:18px 16px;
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      text-align:center;
+      margin-bottom:14px;
+    }
+    .header .tag{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.9;margin-bottom:7px;}
+    .header h1{font-size:22px;line-height:1.2;margin:0;font-weight:800;}
+    .header p{font-size:13px;margin:8px 0 0;opacity:.96;}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+      margin:12px 0;
+      box-shadow:0 3px 12px rgba(0,0,0,.05);
+    }
+    .card h2{font-size:17px;margin:0 0 12px;color:var(--primary);display:flex;align-items:center;gap:8px;}
+    label{display:block;font-weight:700;font-size:13px;margin:10px 0 5px;color:#374151;}
+    input, textarea, select{
+      width:100%;
+      border:1px solid #d1d5db;
+      border-radius:12px;
+      padding:11px 12px;
+      font-size:15px;
+      font-family:Arial, Helvetica, sans-serif;
+      background:#fff;
+      outline:none;
+    }
+    textarea{min-height:86px;resize:vertical;line-height:1.35;}
+    input:focus, textarea:focus, select:focus{border-color:var(--primary2);box-shadow:0 0 0 3px rgba(153,27,27,.12);}
+    .grid{display:grid;grid-template-columns:1fr;gap:8px;}
+    @media(min-width:640px){.grid.two{grid-template-columns:1fr 1fr}.grid.three{grid-template-columns:1fr 1fr 1fr}}
+    .btns{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px;}
+    @media(min-width:640px){.btns{grid-template-columns:1fr 1fr}}
+    button, a.action{
+      border:0;
+      border-radius:14px;
+      padding:13px 14px;
+      font-size:15px;
+      font-weight:800;
+      cursor:pointer;
+      text-decoration:none;
+      text-align:center;
+      display:block;
+      color:#fff;
+    }
+    .btn-primary{background:var(--primary2)}
+    .btn-green{background:var(--ok)}
+    .btn-blue{background:var(--blue)}
+    .btn-dark{background:#111827}
+    .btn-muted{background:#4b5563}
+    .btn-danger{background:#b91c1c}
+    button:active, a.action:active{transform:scale(.99)}
+    .output{
+      white-space:pre-wrap;
+      background:#111827;
+      color:#f9fafb;
+      border-radius:14px;
+      padding:14px;
+      font-size:14px;
+      line-height:1.45;
+      min-height:120px;
+      overflow:auto;
+    }
+    .small{font-size:12px;color:var(--muted);line-height:1.35;margin-top:8px;}
+    .footer{text-align:center;color:#6b7280;font-size:12px;margin:18px 0 6px;}
+    .pill{display:inline-block;background:#fee2e2;color:#7f1d1d;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;margin-top:10px;}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="header">
+      <div class="tag">CRPT Brumado</div>
+      <h1>RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA</h1>
+      <p>Aplicativo operacional para registro, padronização e envio de informações ao coordenador.</p>
+      <span class="pill">Relatório de Ocorrência de Morte Violenta - CRPT Brumado</span>
+    </section>
+
+    <section class="card">
+      <h2>📄 Dados da ocorrência</h2>
+      <label>Nº ID Ocorrência</label>
+      <input id="idOcorrencia" value="BO 85485/2026" />
+      <div class="grid two">
+        <div><label>Perito Responsável</label><input id="perito" value="CARDOSO, K." /></div>
+        <div><label>Data da Ocorrência</label><input id="data" type="date" value="2026-02-01" /></div>
+      </div>
+      <div class="grid three">
+        <div><label>Hora do Chamado</label><input id="horaChamado" value="23:30" /></div>
+        <div><label>Hora de Início da Perícia</label><input id="horaInicio" value="21:00" /></div>
+        <div><label>Hora de Término da Perícia</label><input id="horaTermino" value="22:00" /></div>
+      </div>
+      <div class="grid two">
+        <div><label>Tipo de Local</label><input id="tipoLocal" value="Área externa (zona de mata)" /></div>
+        <div><label>Natureza da Ocorrência</label><input id="natureza" value="Morte a esclarecer" /></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>📍 Geolocalização</h2>
+      <div class="grid two">
+        <div><label>Longitude</label><input id="longitude" value="13255932" /></div>
+        <div><label>Latitude</label><input id="latitude" value="39574368" /></div>
+      </div>
+      <div class="btns">
+        <button class="btn-blue" onclick="capturarGPS()">📡 Capturar GPS do celular</button>
+        <button class="btn-muted" onclick="abrirMapa()">🗺️ Abrir no mapa</button>
+      </div>
+      <p class="small">A captura de GPS depende de autorização do navegador e pode não funcionar se o arquivo for aberto sem permissão de localização.</p>
+    </section>
+
+    <section class="card">
+      <h2>🔬 Vestígios e análise</h2>
+      <label>Vestígios Coletados</label>
+      <textarea id="vestigios">Swab e papelotes de material semelhante à droga.</textarea>
+      <label>Análise Preliminar</label>
+      <textarea id="analise">Este Perito foi informado pelo CICOM, via rádio, sobre um corpo encontrado na cidade de Jiquiriçá/BA, deslocando-se junto à equipe do plantão SILC. No local, foram constatados sinais de ação violenta e um corpo ainda não identificado.</textarea>
+    </section>
+
+    <section class="card">
+      <h2>⚰️ Vítima e informações complementares</h2>
+      <label>Provável qualificação da vítima e possível vínculo faccional</label>
+      <textarea id="vitima">RODRIGO DOS SANTOS NUNES (não confirmado envolvimento com facção).</textarea>
+      <label>Organização criminosa dominante / marcações em paredes e postes</label>
+      <textarea id="organizacao">Prejudicado.</textarea>
+      <label>Número do laudo da perícia de local e requisições complementares</label>
+      <textarea id="laudo">Guia 16873/2026. Enviada por e-mail padrão: crpt.stantonio@dpt.ba.gov.br</textarea>
+    </section>
+
+    <section class="card">
+      <h2>✉️ Destinatários</h2>
+      <label>E-mail do coordenador / destinatário</label>
+      <input id="emailDestino" type="email" placeholder="exemplo@dpt.ba.gov.br" />
+      <label>Assunto do e-mail</label>
+      <input id="assuntoEmail" value="Relatório de Ocorrência de Morte Violenta - CRPT Brumado" />
+      <p class="small">O botão de e-mail abre o aplicativo de e-mail do celular com assunto e corpo preenchidos. O envio final é feito pelo próprio aplicativo de e-mail.</p>
+    </section>
+
+    <section class="card">
+      <h2>📤 Gerar relatório</h2>
+      <div class="btns">
+        <button class="btn-primary" onclick="gerarRelatorio()">📝 Gerar texto</button>
+        <button class="btn-green" onclick="copiarRelatorio()">📋 Copiar texto</button>
+        <button class="btn-blue" onclick="enviarWhatsApp()">📲 Enviar por WhatsApp</button>
+        <button class="btn-dark" onclick="enviarEmail()">✉️ Enviar por e-mail</button>
+        <button class="btn-muted" onclick="salvarHistorico()">💾 Salvar no histórico</button>
+        <button class="btn-danger" onclick="limparHistorico()">🗑️ Limpar histórico</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>📑 Texto gerado</h2>
+      <div id="saida" class="output">Clique em “Gerar texto” para montar o relatório.</div>
+    </section>
+
+    <section class="card">
+      <h2>🗂️ Histórico salvo neste celular</h2>
+      <div id="historico" class="small">Nenhum registro carregado.</div>
+    </section>
+
+    <div class="footer">
+      Relatório de Ocorrência de Morte Violenta - CRPT Brumado<br>
+      Aplicativo HTML operacional para uso interno.
+    </div>
+  </main>
+
+<script>
+function v(id){return document.getElementById(id).value.trim();}
+function dataBR(valor){
+  if(!valor) return '';
+  const p = valor.split('-');
+  if(p.length===3) return `${p[2]}/${p[1]}/${p[0]}`;
+  return valor;
+}
+function gerarRelatorio(){
+  const texto = `RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA - CRPT BRUMADO\n\n`+
+`1. Nº ID Ocorrência: ${v('idOcorrencia')}\n\n`+
+`2. Perito Responsável: ${v('perito')}\n\n`+
+`3. Data da Ocorrência: ${dataBR(v('data'))}\n\n`+
+`4. Hora do Chamado: ${v('horaChamado')}\n\n`+
+`5. Hora de Início da Perícia: ${v('horaInicio')}\n\n`+
+`6. Hora de Término da Perícia: ${v('horaTermino')}\n\n`+
+`7. Geolocalização:\nLongitude: ${v('longitude')}\nLatitude: ${v('latitude')}\n\n`+
+`8. Tipo de Local: ${v('tipoLocal')}\n\n`+
+`9. Natureza da Ocorrência: ${v('natureza')}\n\n`+
+`10. Vestígios Coletados: ${v('vestigios')}\n\n`+
+`11. Análise Preliminar: ${v('analise')}\n\n`+
+`12. Provável qualificação da vítima e se a mesma é faccionada: ${v('vitima')}\n\n`+
+`13. Organização criminosa dominante do local / marcações em paredes e postes: ${v('organizacao')}\n\n`+
+`14. Número do laudo da perícia de local e requisições complementares: ${v('laudo')}\n\n`+
+`CRPT Brumado`;
+  document.getElementById('saida').textContent = texto;
+  return texto;
+}
+async function copiarRelatorio(){
+  const texto = gerarRelatorio();
+  try{
+    await navigator.clipboard.writeText(texto);
+    alert('Relatório copiado com sucesso.');
+  }catch(e){
+    alert('Não foi possível copiar automaticamente. Selecione o texto gerado e copie manualmente.');
+  }
+}
+function enviarWhatsApp(){
+  const texto = encodeURIComponent(gerarRelatorio());
+  window.open(`https://wa.me/?text=${texto}`,'_blank');
+}
+function enviarEmail(){
+  const destino = encodeURIComponent(v('emailDestino'));
+  const assunto = encodeURIComponent(v('assuntoEmail') || 'Relatório de Ocorrência de Morte Violenta - CRPT Brumado');
+  const corpo = encodeURIComponent(gerarRelatorio());
+  window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
+}
+function capturarGPS(){
+  if(!navigator.geolocation){alert('GPS não suportado neste navegador.');return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    document.getElementById('latitude').value = pos.coords.latitude.toFixed(6);
+    document.getElementById('longitude').value = pos.coords.longitude.toFixed(6);
+    alert('Geolocalização capturada com sucesso.');
+  }, err=>{
+    alert('Não foi possível capturar a geolocalização. Verifique as permissões do navegador.');
+  }, {enableHighAccuracy:true, timeout:10000});
+}
+function abrirMapa(){
+  const lat=v('latitude'), lon=v('longitude');
+  if(!lat || !lon){alert('Informe latitude e longitude.');return;}
+  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat+','+lon)}`,'_blank');
+}
+function salvarHistorico(){
+  const texto = gerarRelatorio();
+  const lista = JSON.parse(localStorage.getItem('romv_crpt_brumado') || '[]');
+  lista.unshift({data:new Date().toLocaleString('pt-BR'), id:v('idOcorrencia'), texto});
+  localStorage.setItem('romv_crpt_brumado', JSON.stringify(lista.slice(0,20)));
+  carregarHistorico();
+  alert('Registro salvo no histórico deste aparelho.');
+}
+function carregarHistorico(){
+  const lista = JSON.parse(localStorage.getItem('romv_crpt_brumado') || '[]');
+  const el = document.getElementById('historico');
+  if(!lista.length){el.textContent='Nenhum registro salvo.';return;}
+  el.innerHTML = lista.map((r,i)=>`<div style="padding:8px 0;border-bottom:1px solid #e5e7eb"><b>${i+1}. ${r.id || 'Sem ID'}</b><br>${r.data}</div>`).join('');
+}
+function limparHistorico(){
+  if(confirm('Deseja apagar o histórico salvo neste aparelho?')){
+    localStorage.removeItem('romv_crpt_brumado');
+    carregarHistorico();
+  }
+}
+carregarHistorico();
+gerarRelatorio();
+
+// Registro do Service Worker para funcionar offline
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(registration => {
+        console.log('Service Worker registrado com sucesso:', registration.scope);
+      })
+      .catch(error => {
+        console.log('Falha ao registrar o Service Worker:', error);
+      });
+  });
+}
+</script>
+</body>
+</html>
