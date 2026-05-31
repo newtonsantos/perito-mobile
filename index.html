@@ -405,7 +405,7 @@
     window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
   }
 
-  // ----------------------------- PDF (corrigido com fallback) -----------------------------
+  // ----------------------------- PDF (Corrigido) -----------------------------
   async function gerarPDF() {
     const texto = gerarRelatorio();
     if (!texto) return;
@@ -449,43 +449,62 @@
       return;
     }
 
-    // Cria elemento temporário para conversão
+    // CONVERSÃO DO TEXTO: Troca as quebras de linha padrão por <br>
+    const textoFormatado = texto.replace(/\n/g, '<br>');
+
+    // Cria elemento temporário para conversão com CSS corrigido
     const element = document.createElement('div');
     element.style.position = 'absolute';
-    element.style.left = '-9999px';
     element.style.top = '0';
+    element.style.left = '0';
+    element.style.width = '800px'; // Força uma largura fixa para o html2canvas calcular bem
+    element.style.zIndex = '-9999'; // Esconde atrás da interface, não fora da tela
     element.style.backgroundColor = 'white';
     element.style.color = 'black';
-    element.style.padding = '20px';
+    element.style.padding = '40px'; // Margem interna
     element.style.fontFamily = 'Arial, sans-serif';
-    element.innerHTML = `<pre style="white-space:pre-wrap;">${texto}</pre>`;
+    element.style.fontSize = '14px';
+    element.style.lineHeight = '1.5';
+    
+    // Insere o texto em uma div normal no lugar do <pre>
+    element.innerHTML = `<div>${textoFormatado}</div>`;
     
     if (fotosBase64.length) {
       const fotosDiv = document.createElement('div');
-      fotosDiv.innerHTML = '<h3>Fotos anexadas:</h3>';
+      fotosDiv.innerHTML = '<h3 style="margin-top: 30px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Fotos anexadas:</h3>';
       fotosBase64.forEach(f => {
         const img = document.createElement('img');
         img.src = f;
-        img.style.maxWidth = '200px';
+        img.style.maxWidth = '300px'; // Aumentado um pouco para o PDF
+        img.style.maxHeight = '300px';
         img.style.margin = '10px';
+        img.style.borderRadius = '6px';
+        img.style.objectFit = 'contain';
         fotosDiv.appendChild(img);
       });
       element.appendChild(fotosDiv);
     }
     
     document.body.appendChild(element);
-    await new Promise(r => setTimeout(r, 100));
+    
+    // Aumentamos o delay para 300ms para garantir que o DOM renderizou as imagens em Base64
+    await new Promise(r => setTimeout(r, 300));
     
     const opt = {
-      margin: 0.5,
+      margin: 15, // Usando milímetros em vez de polegadas (in) evita cortes
       filename: `relatorio_${v('idOcorrencia').replace(/[^a-z0-9]/gi, '_')}.pdf`,
       image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, logging: false },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true, // Garante que as imagens renderizem
+        logging: false 
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
     try {
-      await html2pdf().from(element).set(opt).save();
+      // É mais seguro passar as opções (.set) antes do conteúdo (.from)
+      await html2pdf().set(opt).from(element).save();
       console.log('PDF gerado com sucesso via html2pdf');
     } catch (err) {
       console.error('Erro no html2pdf:', err);
@@ -495,7 +514,6 @@
       document.body.removeChild(element);
     }
   }
-
   // ----------------------------- GPS -----------------------------
   function capturarGPS() {
     if(!navigator.geolocation) { alert('GPS não suportado'); return; }
