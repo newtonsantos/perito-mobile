@@ -7,6 +7,11 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#7f1d1d">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <!-- Leaflet CSS e JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- html-to-image para capturar o mapa -->
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
   <style>
     * { box-sizing: border-box; transition: background 0.2s, color 0.2s; }
     :root {
@@ -142,6 +147,14 @@
       width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
       font-size: 24px; cursor: pointer; box-shadow: var(--shadow); z-index: 1000;
     }
+    /* Mapa */
+    #mapid { 
+      height: 300px; 
+      border-radius: 12px; 
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      z-index: 1;
+    }
     /* Estilos para o relatório gerado (laudo) */
     .laudo {
       font-family: 'Times New Roman', Times, serif;
@@ -182,8 +195,18 @@
       margin-top: 5px;
       color: #333;
     }
+    .laudo .mapa-estatico {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .laudo .mapa-estatico img {
+      max-width: 90%;
+      border: 1px solid #aaa;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
     @media print {
-      .btns, .dark-toggle, .card:not(.output), .header { display: none; }
+      .btns, .dark-toggle, .card:not(.output), .header, #mapid { display: none; }
       .output { box-shadow: none; padding: 0; margin: 0; }
     }
   </style>
@@ -194,7 +217,7 @@
     <h1>⚖️ SISTEMA DE LAUDOS PERICIAIS<br><small>CRPT Brumado - Polícia Técnica</small></h1>
   </div>
 
-  <!-- NOVO: Seletor de Tipo de Laudo -->
+  <!-- Tipo de Laudo -->
   <div class="card">
     <h2>📌 Tipo de Laudo</h2>
     <div class="grid two">
@@ -213,7 +236,6 @@
         <input id="outroTipo" type="text" placeholder="Ex: Incêndio, Afogamento...">
       </div>
     </div>
-    <p class="small">O título do laudo será adaptado conforme a escolha acima.</p>
   </div>
 
   <div class="card">
@@ -243,8 +265,12 @@
     <div><label>Endereço aproximado</label><input id="endereco" placeholder="Capturar GPS preenche"></div>
     <div class="btns">
       <button class="btn-blue" onclick="capturarGPS()">📡 Capturar GPS + Endereço</button>
-      <button class="btn-muted" onclick="abrirMapa()">🗺️ Abrir no mapa</button>
+      <button class="btn-muted" onclick="abrirMapa()">🗺️ Abrir no mapa (externo)</button>
+      <button class="btn-muted" onclick="atualizarMapa()">🔄 Atualizar mapa</button>
     </div>
+    <!-- Container do mapa interativo -->
+    <div id="mapid"></div>
+    <p class="small">Mapa interativo de apoio. Ao gerar o laudo, uma imagem estática deste mapa será incluída no documento.</p>
   </div>
 
   <div class="card">
@@ -289,9 +315,9 @@
   <div class="card">
     <h2>📤 Ações</h2>
     <div class="btns">
-      <button class="btn-green" onclick="gerarRelatorio()">📝 Gerar Laudo (HTML)</button>
+      <button class="btn-green" onclick="gerarRelatorioAsync()">📝 Gerar Laudo (com mapa)</button>
       <button class="btn-primary" onclick="copiarRelatorio()">📋 Copiar texto</button>
-      <button class="btn-blue" onclick="gerarPDF()">📄 Gerar PDF (com fotos/legendas)</button>
+      <button class="btn-blue" onclick="gerarPDF()">📄 Gerar PDF (com fotos/mapa)</button>
       <button class="btn-dark" onclick="enviarWhatsApp()">📲 WhatsApp</button>
       <button class="btn-muted" onclick="enviarEmail()">✉️ Email</button>
       <button class="btn-green" onclick="salvarHistorico()">💾 Salvar no histórico</button>
@@ -303,7 +329,7 @@
 
   <div class="card">
     <h2>📑 Laudo pericial gerado</h2>
-    <div id="saida" class="output">Clique em "Gerar Laudo (HTML)"</div>
+    <div id="saida" class="output">Clique em "Gerar Laudo (com mapa)"</div>
   </div>
 
   <div class="card">
@@ -314,13 +340,44 @@
 <div class="dark-toggle" onclick="toggleDarkMode()">🌙</div>
 
 <script>
+  // ----------------------------- Mapa Leaflet -----------------------------
+  let mapInstance = null;
+  let markerInstance = null;
+
+  function initMap(lat, lng) {
+    if (mapInstance === null) {
+      mapInstance = L.map('mapid').setView([lat, lng], 15);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(mapInstance);
+    } else {
+      mapInstance.setView([lat, lng], 15);
+    }
+    if (markerInstance) mapInstance.removeLayer(markerInstance);
+    markerInstance = L.marker([lat, lng]).addTo(mapInstance)
+      .bindPopup(`<b>Local da perícia</b><br>Lat: ${lat}<br>Lon: ${lng}`)
+      .openPopup();
+  }
+
+  function atualizarMapa() {
+    const lat = parseFloat(v('latitude'));
+    const lng = parseFloat(v('longitude'));
+    if (isNaN(lat) || isNaN(lng)) {
+      alert('Coordenadas inválidas. Preencha latitude e longitude corretamente.');
+      return;
+    }
+    initMap(lat, lng);
+  }
+
   // ----------------------------- IndexedDB -----------------------------
   const DB_NAME = 'RomvDB';
   const STORE_NAME = 'historico';
   let db = null;
   function abrirDB() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 2); // versão 2 para garantir upgrade
+      const request = indexedDB.open(DB_NAME, 2);
       request.onupgradeneeded = (e) => {
         const db = e.target.result;
         if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -364,7 +421,7 @@
   }
 
   // ----------------------------- Fotos com legenda -----------------------------
-  let fotosComLegenda = []; // cada item: { base64, legenda }
+  let fotosComLegenda = [];
 
   function atualizarPreviewFotos() {
     const preview = document.getElementById('fotosPreview');
@@ -438,11 +495,9 @@
   function v(id) { return document.getElementById(id).value.trim(); }
   function dataBR(valor) { if(!valor) return ''; const p = valor.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : valor; }
 
-  // Validação com aviso de horário
   function validarCamposObrigatorios() {
     const obrigatorios = ['idOcorrencia', 'perito', 'data', 'tipoLocal', 'natureza', 'latitude', 'longitude'];
     for(let campo of obrigatorios) if(!v(campo)) { alert(`Campo obrigatório: ${campo}`); return false; }
-    // Validação de horário (apenas aviso)
     const inicio = v('horaInicio');
     const termino = v('horaTermino');
     if(inicio && termino && inicio > termino) {
@@ -451,7 +506,6 @@
     return true;
   }
 
-  // Obtém o título dinâmico do laudo
   function obterTituloLaudo() {
     const tipo = v('tipoLaudo');
     if (tipo === 'Outro') {
@@ -461,7 +515,6 @@
     return `LAUDO PERICIAL - ${tipo.toUpperCase()}`;
   }
 
-  // Ajusta a label da vítima conforme o tipo (ex: para acidente, muda "Vítima" para "Envolvidos")
   function obterLabelVitima() {
     const tipo = v('tipoLaudo');
     if (tipo === 'Acidente de trânsito (veicular)') return 'Envolvidos / Vítimas';
@@ -469,9 +522,41 @@
     return 'Qualificação da vítima / envolvido(s)';
   }
 
-  // ----------------------------- Geração do Laudo em HTML -----------------------------
-  function gerarRelatorio() {
-    if(!validarCamposObrigatorios()) return '';
+  // ----------------------------- Geração do Laudo com imagem do mapa (ASSÍNCRONA) -----------------------------
+  async function gerarRelatorioAsync() {
+    if(!validarCamposObrigatorios()) return;
+    
+    // Mostra um indicador de carregamento
+    const saidaDiv = document.getElementById('saida');
+    saidaDiv.innerHTML = '<div style="text-align:center">⏳ Gerando laudo com mapa, aguarde...</div>';
+    
+    // Tenta capturar o mapa como imagem
+    let mapaImgBase64 = '';
+    const lat = parseFloat(v('latitude'));
+    const lng = parseFloat(v('longitude'));
+    if (!isNaN(lat) && !isNaN(lng) && document.getElementById('mapid')) {
+      try {
+        // Garante que o mapa esteja atualizado
+        if (mapInstance) {
+          mapInstance.setView([lat, lng], 15);
+          if (markerInstance) mapInstance.removeLayer(markerInstance);
+          markerInstance = L.marker([lat, lng]).addTo(mapInstance)
+            .bindPopup(`Local: ${lat}, ${lng}`).openPopup();
+        } else {
+          initMap(lat, lng);
+        }
+        // Aguarda um pequeno delay para renderização
+        await new Promise(r => setTimeout(r, 300));
+        // Captura o elemento do mapa
+        const node = document.getElementById('mapid');
+        mapaImgBase64 = await htmlToImage.toPng(node, { quality: 0.9, backgroundColor: '#ffffff' });
+      } catch (err) {
+        console.error('Erro ao capturar mapa:', err);
+        mapaImgBase64 = '';
+      }
+    }
+    
+    // Monta o HTML base
     const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
     const titulo = obterTituloLaudo();
     const labelVitima = obterLabelVitima();
@@ -494,8 +579,20 @@
       <table>
         <tr><td class="destaque">Coordenadas</td><td>Latitude: ${v('latitude')} &nbsp; Longitude: ${v('longitude')}</td></tr>
         <tr><td class="destaque">Endereço aproximado</td><td>${v('endereco') || 'Não informado'}</td></tr>
-      </table>
-      
+      </table>`;
+    
+    // Adiciona a imagem do mapa se foi capturada
+    if (mapaImgBase64) {
+      html += `<div class="mapa-estatico">
+        <strong>Localização geográfica:</strong><br>
+        <img src="${mapaImgBase64}" alt="Mapa estático da localização">
+        <div class="legenda-texto">Figura - Mapa do local da perícia (coordenadas informadas).</div>
+      </div>`;
+    } else {
+      html += `<p style="margin-top:10px"><em>Mapa não disponível (coordenadas inválidas ou erro na captura).</em></p>`;
+    }
+    
+    html += `
       <h2>3. ${labelVitima}</h2>
       <table>
         <tr><td class="destaque">Descrição</td><td>${v('vitima').replace(/\n/g, '<br>')}</td></tr>
@@ -532,41 +629,60 @@
       <p style="font-size:12px; color:#555;">Documento gerado em ${new Date().toLocaleString('pt-BR')}</p>
     </div>`;
     
-    document.getElementById('saida').innerHTML = html;
+    saidaDiv.innerHTML = html;
     return html;
   }
 
+  // Versão em texto plano para WhatsApp/Email/Cópia (sem imagens)
+  function gerarTextoPlano() {
+    if(!validarCamposObrigatorios()) return '';
+    const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
+    let texto = `${obterTituloLaudo()}\n\n` +
+      `CRPT Brumado - Polícia Técnica\n` +
+      `Nº Ocorrência: ${v('idOcorrencia')}\n\n` +
+      `1. DADOS DA OCORRÊNCIA\n` +
+      `Perito: ${v('perito')}\n` +
+      `Data: ${dataBR(v('data'))} (Início: ${v('horaInicio')} - Término: ${v('horaTermino')})\n` +
+      `Hora Chamado: ${v('horaChamado')}\n` +
+      `Local: ${v('tipoLocal')}\n` +
+      `Natureza: ${v('natureza')}\n\n` +
+      `2. GEOLOCALIZAÇÃO\n` +
+      `Coordenadas: ${v('latitude')}, ${v('longitude')}\n` +
+      `Endereço: ${v('endereco') || 'Não informado'}\n\n` +
+      `3. VÍTIMA/ENVOLVIDOS\n` +
+      `${v('vitima')}\n\n` +
+      `4. VESTÍGIOS\n${v('vestigios')}\n\n` +
+      `5. ANÁLISE PRELIMINAR\n${v('analise')}\n\n` +
+      `6. FOTOS ANEXADAS: ${fotosComLegenda.length}\n\n` +
+      `7. CONCLUSÃO\nLaudo encerrado.\n\n` +
+      `Brumado, ${new Date().toLocaleDateString('pt-BR')}\n` +
+      `Assinatura: ${assinatura}`;
+    return texto;
+  }
+
   async function copiarRelatorio() {
-    const html = gerarRelatorio();
-    if(html) {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = html;
-      const textPlain = tempDiv.textContent || tempDiv.innerText;
-      await navigator.clipboard.writeText(textPlain);
+    const texto = gerarTextoPlano();
+    if(texto) {
+      await navigator.clipboard.writeText(texto);
       alert('Texto copiado (versão simplificada)');
     }
   }
   
   function enviarWhatsApp() {
-    const html = gerarRelatorio();
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-    const texto = encodeURIComponent(tempDiv.textContent || tempDiv.innerText);
+    const texto = encodeURIComponent(gerarTextoPlano());
     if(texto) window.open(`https://wa.me/?text=${texto}`,'_blank');
   }
   
   function enviarEmail() {
     const destino = encodeURIComponent(v('emailDestino') || '');
     const assunto = encodeURIComponent(v('assuntoEmail'));
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = gerarRelatorio();
-    const corpo = encodeURIComponent(tempDiv.textContent || tempDiv.innerText);
+    const corpo = encodeURIComponent(gerarTextoPlano());
     window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
   }
 
-  // ----------------------------- PDF via impressão -----------------------------
+  // ----------------------------- PDF via impressão (usa o HTML gerado) -----------------------------
   async function gerarPDF() {
-    const htmlLaudo = gerarRelatorio();
+    const htmlLaudo = await gerarRelatorioAsync(); // aguarda a geração com mapa
     if (!htmlLaudo) return;
     
     const btnPDF = document.querySelector('button[onclick="gerarPDF()"]');
@@ -596,6 +712,8 @@
           .laudo .destaque { background: #f2f2f2; font-weight: bold; width: 30%; }
           .foto-legenda { text-align: center; margin: 30px 0; page-break-inside: avoid; }
           .foto-legenda img { max-width: 70%; border: 1px solid #ccc; border-radius: 8px; }
+          .mapa-estatico { text-align: center; margin: 20px 0; }
+          .mapa-estatico img { max-width: 80%; border: 1px solid #aaa; border-radius: 8px; }
           .legenda-texto { font-size: 12px; font-style: italic; margin-top: 8px; }
           h1, h2 { color: #7f1d1d; text-align: center; }
           @media print { body { margin: 0; padding: 10px; } }
@@ -608,6 +726,7 @@
     `);
     win.document.close();
     
+    // Aguarda todas as imagens carregarem (fotos + mapa)
     const imagens = win.document.querySelectorAll('img');
     if (imagens.length > 0) {
       await Promise.all(Array.from(imagens).map(img => {
@@ -634,6 +753,7 @@
         document.getElementById('endereco').value = data.display_name || `${lat}, ${lon}`;
       } catch(e) { document.getElementById('endereco').value = `${lat}, ${lon}`; }
       alert('GPS capturado!');
+      atualizarMapa();
     }, err => alert('Erro GPS: '+err.message));
   }
   function abrirMapa() { const lat=v('latitude'), lon=v('longitude'); if(lat && lon) window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`,'_blank'); else alert('Informe lat/lon.'); }
@@ -651,7 +771,7 @@
       timestamp: new Date().toLocaleString('pt-BR')
     };
   }
-  function restaurarEstado(estado) {
+  async function restaurarEstado(estado) {
     for(let key in estado) {
       if(key !== 'fotosComLegenda' && document.getElementById(key)) {
         document.getElementById(key).value = estado[key];
@@ -660,10 +780,10 @@
     fotosComLegenda = estado.fotosComLegenda || [];
     atualizarPreviewFotos();
     document.getElementById('fotosInput').value = '';
-    // Controla visibilidade do campo "Outro"
     const tipoSelecionado = v('tipoLaudo');
     document.getElementById('divOutroTipo').style.display = (tipoSelecionado === 'Outro') ? 'block' : 'none';
-    gerarRelatorio();
+    atualizarMapa();
+    await gerarRelatorioAsync(); // gera o laudo com mapa após restaurar
     alert('Registro restaurado!');
   }
   async function salvarHistorico() {
@@ -689,9 +809,8 @@
   async function limparHistorico() { if(confirm('Apagar histórico?')) { await limparHistoricoIndexed(); await carregarHistoricoUI(); } }
 
   // ----------------------------- Limpar formulário -----------------------------
-  function limparFormulario() {
+  async function limparFormulario() {
     if(confirm('Limpar todos os campos e fotos? Esta ação não pode ser desfeita (mas o histórico ainda pode restaurar).')) {
-      // Limpa os campos principais
       document.getElementById('idOcorrencia').value = '';
       document.getElementById('perito').value = '';
       document.getElementById('data').value = new Date().toISOString().slice(0,10);
@@ -716,8 +835,13 @@
       document.getElementById('divOutroTipo').style.display = 'none';
       fotosComLegenda = [];
       atualizarPreviewFotos();
-      gerarRelatorio();
-      alert('Formulário limpo. Inicie um novo laudo.');
+      if (mapInstance) {
+        mapInstance.setView([-13.7845, -41.2563], 15);
+        if(markerInstance) mapInstance.removeLayer(markerInstance);
+        markerInstance = L.marker([-13.7845, -41.2563]).addTo(mapInstance).bindPopup('Local padrão').openPopup();
+      }
+      await gerarRelatorioAsync();
+      alert('Formulário limpo.');
     }
   }
 
@@ -742,27 +866,30 @@
     const divOutro = document.getElementById('divOutroTipo');
     divOutro.style.display = (tipoSelecionado === 'Outro') ? 'block' : 'none';
     if (tipoSelecionado !== 'Outro') document.getElementById('outroTipo').value = '';
-    gerarRelatorio(); // atualiza o título ao mudar o tipo
+    gerarRelatorioAsync(); // atualiza o título ao mudar o tipo
   }
   document.getElementById('tipoLaudo').addEventListener('change', toggleOutroTipo);
-  document.getElementById('outroTipo').addEventListener('input', () => gerarRelatorio());
+  document.getElementById('outroTipo').addEventListener('input', () => gerarRelatorioAsync());
 
   // ----------------------------- Rascunho e inicialização -----------------------------
   function autoSaveRascunho() { localStorage.setItem('romv_rascunho', JSON.stringify(obterEstadoAtual())); }
-  function carregarRascunho() {
+  async function carregarRascunho() {
     const rascunho = localStorage.getItem('romv_rascunho');
-    if(rascunho && confirm('Restaurar rascunho automático?')) restaurarEstado(JSON.parse(rascunho));
+    if(rascunho && confirm('Restaurar rascunho automático?')) await restaurarEstado(JSON.parse(rascunho));
   }
   setInterval(autoSaveRascunho, 30000);
+  
   window.addEventListener('load', async () => {
-    // Seta data atual se não tiver
     if(!document.getElementById('data').value) {
       document.getElementById('data').value = new Date().toISOString().slice(0,10);
     }
+    const latDefault = parseFloat(v('latitude')) || -13.7845;
+    const lngDefault = parseFloat(v('longitude')) || -41.2563;
+    initMap(latDefault, lngDefault);
     await carregarRascunho();
     await carregarHistoricoUI();
-    toggleOutroTipo(); // garante visibilidade do campo "Outro"
-    gerarRelatorio();
+    toggleOutroTipo();
+    await gerarRelatorioAsync();
   });
 
   // ----------------------------- Dark Mode -----------------------------
