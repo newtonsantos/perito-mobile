@@ -7,7 +7,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#7f1d1d">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <!-- Biblioteca para gerar PDF -->
+  <!-- Biblioteca para gerar PDF (opcional, será verificada) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     * { box-sizing: border-box; transition: background 0.2s, color 0.2s; }
@@ -180,7 +180,7 @@
     </div>
     <input type="file" id="fotosInput" accept="image/*" multiple style="display:none">
     <div id="fotosPreview" class="thumb-grid"></div>
-    <p class="small">✔️ Fotos são comprimidas (max 1024px, qualidade 70%) para economizar espaço. O armazenamento agora usa IndexedDB, com capacidade muito maior.</p>
+    <p class="small">✔️ Fotos são comprimidas (max 1024px, qualidade 70%). Armazenamento via IndexedDB (sem limite prático).</p>
   </div>
 
   <div class="card">
@@ -248,7 +248,6 @@
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    // Guarda o estado com timestamp e ID único
     const registro = { ...estado, savedAt: new Date().toISOString() };
     store.add(registro);
     return new Promise((resolve, reject) => {
@@ -266,7 +265,6 @@
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => resolve([]);
     });
-    // Ordem decrescente (mais recente primeiro)
     return registros.reverse();
   }
 
@@ -310,7 +308,7 @@
     });
   }
 
-  // ----------------------------- Fotos (sem limite, com compressão) -----------------------------
+  // ----------------------------- Fotos -----------------------------
   let fotosBase64 = [];
 
   function atualizarPreviewFotos() {
@@ -343,12 +341,11 @@
     reader.readAsDataURL(file);
   }
 
-  // Captura via câmera (abre a câmera diretamente)
   function abrirCamera() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'environment'; // força câmera traseira
+    input.capture = 'environment';
     input.onchange = async (e) => {
       if (e.target.files && e.target.files[0]) {
         await adicionarFoto(e.target.files[0]);
@@ -357,7 +354,6 @@
     input.click();
   }
 
-  // Seleção múltipla via galeria
   document.getElementById('fotosInput').addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
     for (let file of files) {
@@ -366,7 +362,7 @@
     e.target.value = '';
   });
 
-  // ----------------------------- Funções auxiliares -----------------------------
+  // ----------------------------- Funções principais -----------------------------
   function v(id) { return document.getElementById(id).value.trim(); }
   function dataBR(valor) { if(!valor) return ''; const p = valor.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : valor; }
 
@@ -409,6 +405,98 @@
     window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
   }
 
+  // ----------------------------- PDF (corrigido com fallback) -----------------------------
+  async function gerarPDF() {
+    const texto = gerarRelatorio();
+    if (!texto) return;
+
+    // Função auxiliar para gerar a página de impressão (fallback)
+    function abrirImpressao() {
+      const win = window.open();
+      if (!win) {
+        alert('Permita pop-ups para gerar o PDF via impressão.');
+        return;
+      }
+      win.document.write(`
+        <html>
+          <head>
+            <title>Relatório ${v('idOcorrencia')}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              pre { white-space: pre-wrap; font-family: monospace; }
+              img { max-width: 200px; margin: 10px; border: 1px solid #ccc; }
+              .header { text-align: center; margin-bottom: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h2>RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA - CRPT BRUMADO</h2>
+            </div>
+            <pre>${texto.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+            ${fotosBase64.length ? '<h3>Fotos anexadas:</h3>' + fotosBase64.map(f => `<img src="${f}">`).join('') : ''}
+            <p style="margin-top: 40px; text-align: center;">Documento gerado em ${new Date().toLocaleString('pt-BR')}</p>
+          </body>
+        </html>
+      `);
+      win.document.close();
+      win.print();
+    }
+
+    // Verifica se a biblioteca html2pdf está disponível
+    if (typeof html2pdf === 'undefined') {
+      console.warn('html2pdf não carregado. Usando fallback de impressão.');
+      abrirImpressao();
+      return;
+    }
+
+    // Cria elemento temporário para conversão
+    const element = document.createElement('div');
+    element.style.position = 'absolute';
+    element.style.left = '-9999px';
+    element.style.top = '0';
+    element.style.backgroundColor = 'white';
+    element.style.color = 'black';
+    element.style.padding = '20px';
+    element.style.fontFamily = 'Arial, sans-serif';
+    element.innerHTML = `<pre style="white-space:pre-wrap;">${texto}</pre>`;
+    
+    if (fotosBase64.length) {
+      const fotosDiv = document.createElement('div');
+      fotosDiv.innerHTML = '<h3>Fotos anexadas:</h3>';
+      fotosBase64.forEach(f => {
+        const img = document.createElement('img');
+        img.src = f;
+        img.style.maxWidth = '200px';
+        img.style.margin = '10px';
+        fotosDiv.appendChild(img);
+      });
+      element.appendChild(fotosDiv);
+    }
+    
+    document.body.appendChild(element);
+    await new Promise(r => setTimeout(r, 100));
+    
+    const opt = {
+      margin: 0.5,
+      filename: `relatorio_${v('idOcorrencia').replace(/[^a-z0-9]/gi, '_')}.pdf`,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, logging: false },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+    
+    try {
+      await html2pdf().from(element).set(opt).save();
+      console.log('PDF gerado com sucesso via html2pdf');
+    } catch (err) {
+      console.error('Erro no html2pdf:', err);
+      alert('Não foi possível gerar o PDF automaticamente. Será aberta a janela de impressão para salvar como PDF.');
+      abrirImpressao();
+    } finally {
+      document.body.removeChild(element);
+    }
+  }
+
+  // ----------------------------- GPS -----------------------------
   function capturarGPS() {
     if(!navigator.geolocation) { alert('GPS não suportado'); return; }
     navigator.geolocation.getCurrentPosition(async pos => {
@@ -424,8 +512,10 @@
       alert('GPS e endereço capturados!');
     }, err => alert('Erro GPS: '+err.message));
   }
+
   function abrirMapa() { const lat=v('latitude'), lon=v('longitude'); if(lat && lon) window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`,'_blank'); else alert('Informe lat/lon.'); }
 
+  // ----------------------------- Histórico (IndexedDB) -----------------------------
   function obterEstadoAtual() {
     return {
       idOcorrencia: v('idOcorrencia'), perito: v('perito'), data: v('data'), horaChamado: v('horaChamado'),
@@ -472,26 +562,7 @@
   async function exportarHistorico() { await exportarHistoricoIndexed(); }
   async function limparHistorico() { if(confirm('Apagar todo o histórico?')) { await limparHistoricoIndexed(); await carregarHistoricoUI(); } }
 
-  async function gerarPDF() {
-    const texto = gerarRelatorio();
-    if(!texto) return;
-    const element = document.createElement('div');
-    element.style.padding = '20px';
-    element.style.fontFamily = 'Arial';
-    element.style.background = 'white';
-    element.style.color = 'black';
-    element.innerHTML = `<pre style="white-space:pre-wrap;">${texto}</pre>`;
-    if(fotosBase64.length) {
-      element.innerHTML += '<h3>Fotos anexadas:</h3>';
-      fotosBase64.forEach(f => { element.innerHTML += `<img src="${f}" style="max-width:200px; margin:10px;">`; });
-    }
-    document.body.appendChild(element);
-    try {
-      await html2pdf().set({ margin: 0.5, filename: `relatorio_${v('idOcorrencia')}.pdf`, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).from(element).save();
-    } catch(e) { alert('Erro PDF: '+e); }
-    document.body.removeChild(element);
-  }
-
+  // ----------------------------- Voz -----------------------------
   function dictar(campoId) {
     if(!('webkitSpeechRecognition' in window)) { alert('Navegador não suporta ditado.'); return; }
     const recognition = new webkitSpeechRecognition();
@@ -506,6 +577,7 @@
     recognition.onerror = () => alert('Falha no reconhecimento.');
   }
 
+  // ----------------------------- Rascunho e inicialização -----------------------------
   function autoSaveRascunho() { localStorage.setItem('romv_rascunho', JSON.stringify(obterEstadoAtual())); }
   function carregarRascunho() {
     const rascunho = localStorage.getItem('romv_rascunho');
@@ -518,6 +590,7 @@
     gerarRelatorio(); 
   });
 
+  // ----------------------------- Dark Mode -----------------------------
   function toggleDarkMode() {
     document.body.classList.toggle('dark');
     const isDark = document.body.classList.contains('dark');
