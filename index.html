@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-  <title>Laudo Pericial - Morte Violenta - CRPT Brumado</title>
+  <title>Laudo Pericial - CRPT Brumado</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#7f1d1d">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -191,7 +191,29 @@
 <body>
 <div class="app">
   <div class="header">
-    <h1>⚖️ LAUDO PERICIAL - MORTE VIOLENTA<br><small>CRPT Brumado - Polícia Técnica</small></h1>
+    <h1>⚖️ SISTEMA DE LAUDOS PERICIAIS<br><small>CRPT Brumado - Polícia Técnica</small></h1>
+  </div>
+
+  <!-- NOVO: Seletor de Tipo de Laudo -->
+  <div class="card">
+    <h2>📌 Tipo de Laudo</h2>
+    <div class="grid two">
+      <div>
+        <label>Selecione o tipo *</label>
+        <select id="tipoLaudo">
+          <option value="Morte violenta">⚰️ Morte violenta</option>
+          <option value="Acidente de trânsito (veicular)">🚗 Acidente de trânsito (veicular)</option>
+          <option value="Perícia física (descritiva)">🩺 Perícia física (descritiva)</option>
+          <option value="Lesão corporal">🩸 Lesão corporal</option>
+          <option value="Outro">📄 Outro (especificar)</option>
+        </select>
+      </div>
+      <div id="divOutroTipo" style="display: none;">
+        <label>Especificar outro tipo</label>
+        <input id="outroTipo" type="text" placeholder="Ex: Incêndio, Afogamento...">
+      </div>
+    </div>
+    <p class="small">O título do laudo será adaptado conforme a escolha acima.</p>
   </div>
 
   <div class="card">
@@ -201,10 +223,10 @@
       <div><label>Perito Responsável *</label><input id="perito" value="CARDOSO, K."></div>
     </div>
     <div class="grid three">
-      <div><label>Data *</label><input id="data" type="date" value="2026-02-01"></div>
-      <div><label>Hora Chamado</label><input id="horaChamado" value="23:30"></div>
-      <div><label>Início Perícia</label><input id="horaInicio" value="21:00"></div>
-      <div><label>Término Perícia</label><input id="horaTermino" value="22:00"></div>
+      <div><label>Data *</label><input id="data" type="date" value="2026-06-01"></div>
+      <div><label>Hora Chamado</label><input id="horaChamado" type="time" value="23:30"></div>
+      <div><label>Início Perícia</label><input id="horaInicio" type="time" value="21:00"></div>
+      <div><label>Término Perícia</label><input id="horaTermino" type="time" value="22:00"></div>
     </div>
     <div class="grid two">
       <div><label>Tipo de Local *</label><input id="tipoLocal" value="Área externa (zona de mata)"></div>
@@ -235,7 +257,7 @@
 
   <div class="card">
     <h2>⚰️ Vítima e informações</h2>
-    <label>Qualificação da vítima / vínculo faccional</label>
+    <label>Qualificação da vítima / envolvido(s)</label>
     <textarea id="vitima">RODRIGO DOS SANTOS NUNES (não confirmado)</textarea>
     <label>Organização dominante / marcações</label>
     <textarea id="organizacao">Prejudicado.</textarea>
@@ -259,7 +281,7 @@
     <label>E-mail do coordenador</label>
     <input id="emailDestino" type="email" placeholder="coordenador@dpt.ba.gov.br">
     <label>Assunto do e-mail</label>
-    <input id="assuntoEmail" value="Laudo Pericial - Morte Violenta">
+    <input id="assuntoEmail" value="Laudo Pericial - Ocorrência">
     <label>Assinatura digital (nome)</label>
     <input id="assinaturaNome" placeholder="Digite seu nome completo">
   </div>
@@ -275,6 +297,7 @@
       <button class="btn-green" onclick="salvarHistorico()">💾 Salvar no histórico</button>
       <button class="btn-danger" onclick="exportarHistorico()">📦 Exportar histórico (JSON)</button>
       <button class="btn-muted" onclick="limparHistorico()">🗑️ Limpar histórico</button>
+      <button class="btn-muted" onclick="limparFormulario()">🧹 Limpar formulário</button>
     </div>
   </div>
 
@@ -291,13 +314,13 @@
 <div class="dark-toggle" onclick="toggleDarkMode()">🌙</div>
 
 <script>
-  // ----------------------------- IndexedDB (mesmo código) -----------------------------
+  // ----------------------------- IndexedDB -----------------------------
   const DB_NAME = 'RomvDB';
   const STORE_NAME = 'historico';
   let db = null;
   function abrirDB() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 1);
+      const request = indexedDB.open(DB_NAME, 2); // versão 2 para garantir upgrade
       request.onupgradeneeded = (e) => {
         const db = e.target.result;
         if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -336,7 +359,7 @@
     const blob = new Blob([JSON.stringify(registros, null, 2)], {type: 'application/json'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `historico_romv_${new Date().toISOString().slice(0,19)}.json`;
+    a.download = `historico_laudos_${new Date().toISOString().slice(0,19)}.json`;
     a.click();
   }
 
@@ -415,19 +438,46 @@
   function v(id) { return document.getElementById(id).value.trim(); }
   function dataBR(valor) { if(!valor) return ''; const p = valor.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : valor; }
 
+  // Validação com aviso de horário
   function validarCamposObrigatorios() {
     const obrigatorios = ['idOcorrencia', 'perito', 'data', 'tipoLocal', 'natureza', 'latitude', 'longitude'];
     for(let campo of obrigatorios) if(!v(campo)) { alert(`Campo obrigatório: ${campo}`); return false; }
+    // Validação de horário (apenas aviso)
+    const inicio = v('horaInicio');
+    const termino = v('horaTermino');
+    if(inicio && termino && inicio > termino) {
+      alert('⚠️ Atenção: O horário de término é anterior ao horário de início. Verifique os horários da perícia.');
+    }
     return true;
   }
 
-  // ----------------------------- Geração do Laudo em HTML (com legendas) -----------------------------
+  // Obtém o título dinâmico do laudo
+  function obterTituloLaudo() {
+    const tipo = v('tipoLaudo');
+    if (tipo === 'Outro') {
+      const outro = v('outroTipo');
+      return outro ? `LAUDO PERICIAL - ${outro.toUpperCase()}` : 'LAUDO PERICIAL (OUTRO TIPO)';
+    }
+    return `LAUDO PERICIAL - ${tipo.toUpperCase()}`;
+  }
+
+  // Ajusta a label da vítima conforme o tipo (ex: para acidente, muda "Vítima" para "Envolvidos")
+  function obterLabelVitima() {
+    const tipo = v('tipoLaudo');
+    if (tipo === 'Acidente de trânsito (veicular)') return 'Envolvidos / Vítimas';
+    if (tipo === 'Perícia física (descritiva)') return 'Pessoa periciada';
+    return 'Qualificação da vítima / envolvido(s)';
+  }
+
+  // ----------------------------- Geração do Laudo em HTML -----------------------------
   function gerarRelatorio() {
     if(!validarCamposObrigatorios()) return '';
     const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
+    const titulo = obterTituloLaudo();
+    const labelVitima = obterLabelVitima();
     
     let html = `<div class="laudo">
-      <h1>LAUDO PERICIAL DE MORTE VIOLENTA</h1>
+      <h1>${titulo}</h1>
       <p style="text-align:center"><strong>CRPT Brumado - Polícia Técnica</strong></p>
       <p style="text-align:center">Nº Ocorrência: ${v('idOcorrencia')}</p>
       
@@ -446,9 +496,9 @@
         <tr><td class="destaque">Endereço aproximado</td><td>${v('endereco') || 'Não informado'}</td></tr>
       </table>
       
-      <h2>3. VÍTIMA E INFORMAÇÕES COMPLEMENTARES</h2>
+      <h2>3. ${labelVitima}</h2>
       <table>
-        <tr><td class="destaque">Qualificação da vítima</td><td>${v('vitima').replace(/\n/g, '<br>')}</td></tr>
+        <tr><td class="destaque">Descrição</td><td>${v('vitima').replace(/\n/g, '<br>')}</td></tr>
         <tr><td class="destaque">Organização criminosa / marcações</td><td>${v('organizacao').replace(/\n/g, '<br>')}</td></tr>
         <tr><td class="destaque">Nº Laudo / requisições</td><td>${v('laudo').replace(/\n/g, '<br>')}</td></tr>
       </table>
@@ -489,7 +539,6 @@
   async function copiarRelatorio() {
     const html = gerarRelatorio();
     if(html) {
-      // Copia o texto plano (remove tags para envio por email/whatsapp)
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
       const textPlain = tempDiv.textContent || tempDiv.innerText;
@@ -515,7 +564,7 @@
     window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
   }
 
-  // ----------------------------- PDF via impressão com laudo completo -----------------------------
+  // ----------------------------- PDF via impressão -----------------------------
   async function gerarPDF() {
     const htmlLaudo = gerarRelatorio();
     if (!htmlLaudo) return;
@@ -559,7 +608,6 @@
     `);
     win.document.close();
     
-    // Aguarda imagens carregarem
     const imagens = win.document.querySelectorAll('img');
     if (imagens.length > 0) {
       await Promise.all(Array.from(imagens).map(img => {
@@ -572,7 +620,7 @@
     btnPDF.disabled = false;
   }
 
-  // ----------------------------- GPS (mantido) -----------------------------
+  // ----------------------------- GPS -----------------------------
   function capturarGPS() {
     if(!navigator.geolocation) { alert('GPS não suportado'); return; }
     navigator.geolocation.getCurrentPosition(async pos => {
@@ -590,7 +638,7 @@
   }
   function abrirMapa() { const lat=v('latitude'), lon=v('longitude'); if(lat && lon) window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`,'_blank'); else alert('Informe lat/lon.'); }
 
-  // ----------------------------- Histórico (adaptado para fotos com legenda) -----------------------------
+  // ----------------------------- Histórico -----------------------------
   function obterEstadoAtual() {
     return {
       idOcorrencia: v('idOcorrencia'), perito: v('perito'), data: v('data'), horaChamado: v('horaChamado'),
@@ -598,17 +646,23 @@
       latitude: v('latitude'), longitude: v('longitude'), endereco: v('endereco'), vestigios: v('vestigios'),
       analise: v('analise'), vitima: v('vitima'), organizacao: v('organizacao'), laudo: v('laudo'),
       emailDestino: v('emailDestino'), assuntoEmail: v('assuntoEmail'), assinaturaNome: v('assinaturaNome'),
+      tipoLaudo: v('tipoLaudo'), outroTipo: v('outroTipo'),
       fotosComLegenda: fotosComLegenda,
       timestamp: new Date().toLocaleString('pt-BR')
     };
   }
   function restaurarEstado(estado) {
     for(let key in estado) {
-      if(key !== 'fotosComLegenda' && document.getElementById(key)) document.getElementById(key).value = estado[key];
+      if(key !== 'fotosComLegenda' && document.getElementById(key)) {
+        document.getElementById(key).value = estado[key];
+      }
     }
     fotosComLegenda = estado.fotosComLegenda || [];
     atualizarPreviewFotos();
     document.getElementById('fotosInput').value = '';
+    // Controla visibilidade do campo "Outro"
+    const tipoSelecionado = v('tipoLaudo');
+    document.getElementById('divOutroTipo').style.display = (tipoSelecionado === 'Outro') ? 'block' : 'none';
     gerarRelatorio();
     alert('Registro restaurado!');
   }
@@ -634,6 +688,39 @@
   async function exportarHistorico() { await exportarHistoricoIndexed(); }
   async function limparHistorico() { if(confirm('Apagar histórico?')) { await limparHistoricoIndexed(); await carregarHistoricoUI(); } }
 
+  // ----------------------------- Limpar formulário -----------------------------
+  function limparFormulario() {
+    if(confirm('Limpar todos os campos e fotos? Esta ação não pode ser desfeita (mas o histórico ainda pode restaurar).')) {
+      // Limpa os campos principais
+      document.getElementById('idOcorrencia').value = '';
+      document.getElementById('perito').value = '';
+      document.getElementById('data').value = new Date().toISOString().slice(0,10);
+      document.getElementById('horaChamado').value = '';
+      document.getElementById('horaInicio').value = '';
+      document.getElementById('horaTermino').value = '';
+      document.getElementById('tipoLocal').value = '';
+      document.getElementById('natureza').value = '';
+      document.getElementById('latitude').value = '';
+      document.getElementById('longitude').value = '';
+      document.getElementById('endereco').value = '';
+      document.getElementById('vestigios').value = '';
+      document.getElementById('analise').value = '';
+      document.getElementById('vitima').value = '';
+      document.getElementById('organizacao').value = '';
+      document.getElementById('laudo').value = '';
+      document.getElementById('emailDestino').value = '';
+      document.getElementById('assuntoEmail').value = 'Laudo Pericial - Ocorrência';
+      document.getElementById('assinaturaNome').value = '';
+      document.getElementById('tipoLaudo').value = 'Morte violenta';
+      document.getElementById('outroTipo').value = '';
+      document.getElementById('divOutroTipo').style.display = 'none';
+      fotosComLegenda = [];
+      atualizarPreviewFotos();
+      gerarRelatorio();
+      alert('Formulário limpo. Inicie um novo laudo.');
+    }
+  }
+
   // ----------------------------- Voz -----------------------------
   function dictar(campoId) {
     if(!('webkitSpeechRecognition' in window)) { alert('Navegador não suporta ditado.'); return; }
@@ -649,6 +736,17 @@
     recognition.onerror = () => alert('Falha no reconhecimento.');
   }
 
+  // ----------------------------- Controle do campo "Outro" -----------------------------
+  function toggleOutroTipo() {
+    const tipoSelecionado = v('tipoLaudo');
+    const divOutro = document.getElementById('divOutroTipo');
+    divOutro.style.display = (tipoSelecionado === 'Outro') ? 'block' : 'none';
+    if (tipoSelecionado !== 'Outro') document.getElementById('outroTipo').value = '';
+    gerarRelatorio(); // atualiza o título ao mudar o tipo
+  }
+  document.getElementById('tipoLaudo').addEventListener('change', toggleOutroTipo);
+  document.getElementById('outroTipo').addEventListener('input', () => gerarRelatorio());
+
   // ----------------------------- Rascunho e inicialização -----------------------------
   function autoSaveRascunho() { localStorage.setItem('romv_rascunho', JSON.stringify(obterEstadoAtual())); }
   function carregarRascunho() {
@@ -657,8 +755,13 @@
   }
   setInterval(autoSaveRascunho, 30000);
   window.addEventListener('load', async () => {
+    // Seta data atual se não tiver
+    if(!document.getElementById('data').value) {
+      document.getElementById('data').value = new Date().toISOString().slice(0,10);
+    }
     await carregarRascunho();
     await carregarHistoricoUI();
+    toggleOutroTipo(); // garante visibilidade do campo "Outro"
     gerarRelatorio();
   });
 
