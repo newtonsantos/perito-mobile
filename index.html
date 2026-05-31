@@ -2,301 +2,529 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
   <title>Relatório de Ocorrência de Morte Violenta - CRPT Brumado</title>
-  
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#7f1d1d">
   <link rel="apple-touch-icon" href="icon-192.png">
-
+  <!-- Biblioteca para gerar PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
-    :root{
-      --bg:#f3f4f6;
-      --card:#ffffff;
-      --primary:#7f1d1d;
-      --primary2:#991b1b;
-      --dark:#111827;
-      --muted:#6b7280;
-      --border:#e5e7eb;
-      --ok:#166534;
-      --blue:#1d4ed8;
-      --shadow:0 8px 24px rgba(0,0,0,.10);
+    * { box-sizing: border-box; transition: background 0.2s, color 0.2s; }
+    :root {
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #111827;
+      --primary: #7f1d1d;
+      --primary2: #991b1b;
+      --border: #e5e7eb;
+      --muted: #6b7280;
+      --shadow: 0 8px 24px rgba(0,0,0,0.1);
     }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:Arial, Helvetica, sans-serif;
-      background:linear-gradient(180deg,#fff 0%,var(--bg) 28%);
-      color:var(--dark);
-      padding:12px;
+    body.dark {
+      --bg: #1f2937;
+      --card: #374151;
+      --text: #f9fafb;
+      --border: #4b5563;
+      --muted: #9ca3af;
     }
-    .app{max-width:760px;margin:0 auto 30px;}
-    .header{
-      background:linear-gradient(135deg,var(--primary),var(--primary2));
-      color:#fff;
-      padding:18px 16px;
-      border-radius:18px;
-      box-shadow:var(--shadow);
-      text-align:center;
-      margin-bottom:14px;
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 12px;
     }
-    .header .tag{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.9;margin-bottom:7px;}
-    .header h1{font-size:22px;line-height:1.2;margin:0;font-weight:800;}
-    .header p{font-size:13px;margin:8px 0 0;opacity:.96;}
-    .card{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:16px;
-      padding:14px;
-      margin:12px 0;
-      box-shadow:0 3px 12px rgba(0,0,0,.05);
+    .app { max-width: 800px; margin: 0 auto 30px; }
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      color: white;
+      padding: 18px 16px;
+      border-radius: 18px;
+      text-align: center;
+      margin-bottom: 14px;
     }
-    .card h2{font-size:17px;margin:0 0 12px;color:var(--primary);display:flex;align-items:center;gap:8px;}
-    label{display:block;font-weight:700;font-size:13px;margin:10px 0 5px;color:#374151;}
-    input, textarea, select{
-      width:100%;
-      border:1px solid #d1d5db;
-      border-radius:12px;
-      padding:11px 12px;
-      font-size:15px;
-      font-family:Arial, Helvetica, sans-serif;
-      background:#fff;
-      outline:none;
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      margin: 12px 0;
     }
-    textarea{min-height:86px;resize:vertical;line-height:1.35;}
-    input:focus, textarea:focus, select:focus{border-color:var(--primary2);box-shadow:0 0 0 3px rgba(153,27,27,.12);}
-    .grid{display:grid;grid-template-columns:1fr;gap:8px;}
-    @media(min-width:640px){.grid.two{grid-template-columns:1fr 1fr}.grid.three{grid-template-columns:1fr 1fr 1fr}}
-    .btns{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px;}
-    @media(min-width:640px){.btns{grid-template-columns:1fr 1fr}}
-    button, a.action{
-      border:0;
-      border-radius:14px;
-      padding:13px 14px;
-      font-size:15px;
-      font-weight:800;
-      cursor:pointer;
-      text-decoration:none;
-      text-align:center;
-      display:block;
-      color:#fff;
+    .card h2 { font-size: 17px; margin: 0 0 12px; color: var(--primary2); display: flex; align-items: center; gap: 8px; }
+    label { display: block; font-weight: 700; font-size: 13px; margin: 10px 0 5px; color: var(--text); }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 15px;
+      background: var(--card);
+      color: var(--text);
     }
-    .btn-primary{background:var(--primary2)}
-    .btn-green{background:var(--ok)}
-    .btn-blue{background:var(--blue)}
-    .btn-dark{background:#111827}
-    .btn-muted{background:#4b5563}
-    .btn-danger{background:#b91c1c}
-    button:active, a.action:active{transform:scale(.99)}
-    .output{
-      white-space:pre-wrap;
-      background:#111827;
-      color:#f9fafb;
-      border-radius:14px;
-      padding:14px;
-      font-size:14px;
-      line-height:1.45;
-      min-height:120px;
-      overflow:auto;
+    .grid { display: grid; gap: 8px; }
+    .grid.two { grid-template-columns: 1fr 1fr; }
+    .grid.three { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 640px) {
+      .grid.two, .grid.three { grid-template-columns: 1fr; }
     }
-    .small{font-size:12px;color:var(--muted);line-height:1.35;margin-top:8px;}
-    .footer{text-align:center;color:#6b7280;font-size:12px;margin:18px 0 6px;}
-    .pill{display:inline-block;background:#fee2e2;color:#7f1d1d;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;margin-top:10px;}
+    .btns {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 10px;
+      font-weight: 800;
+      cursor: pointer;
+      color: white;
+      background: var(--primary2);
+      font-size: 14px;
+    }
+    .btn-green { background: #166534; }
+    .btn-blue { background: #1d4ed8; }
+    .btn-dark { background: #111827; }
+    .btn-muted { background: #4b5563; }
+    .btn-danger { background: #b91c1c; }
+    .btn-outline { background: transparent; border: 1px solid var(--primary2); color: var(--primary2); }
+    .output {
+      background: #111827;
+      color: #f9fafb;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 14px;
+      white-space: pre-wrap;
+      min-height: 120px;
+    }
+    .small { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .historico-item {
+      background: var(--border);
+      margin: 8px 0;
+      padding: 8px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .thumb-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+    .thumb { max-width: 80px; border-radius: 8px; border: 1px solid var(--border); }
+    .remove-foto { cursor: pointer; background: red; color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 4px; }
+    .dark-toggle {
+      position: fixed; bottom: 20px; right: 20px; background: var(--primary); border-radius: 50%;
+      width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
+      font-size: 24px; cursor: pointer; box-shadow: var(--shadow); z-index: 1000;
+    }
   </style>
 </head>
 <body>
-  <main class="app">
-    <section class="header">
-      <div class="tag">CRPT Brumado</div>
-      <h1>RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA</h1>
-      <p>Aplicativo operacional para registro, padronização e envio de informações ao coordenador.</p>
-      <span class="pill">Relatório de Ocorrência de Morte Violenta - CRPT Brumado</span>
-    </section>
+<div class="app">
+  <div class="header">
+    <h1>⚰️ RELATÓRIO DE MORTE VIOLENTA<br><small>CRPT Brumado</small></h1>
+  </div>
 
-    <section class="card">
-      <h2>📄 Dados da ocorrência</h2>
-      <label>Nº ID Ocorrência</label>
-      <input id="idOcorrencia" value="BO 85485/2026" />
-      <div class="grid two">
-        <div><label>Perito Responsável</label><input id="perito" value="CARDOSO, K." /></div>
-        <div><label>Data da Ocorrência</label><input id="data" type="date" value="2026-02-01" /></div>
-      </div>
-      <div class="grid three">
-        <div><label>Hora do Chamado</label><input id="horaChamado" value="23:30" /></div>
-        <div><label>Hora de Início da Perícia</label><input id="horaInicio" value="21:00" /></div>
-        <div><label>Hora de Término da Perícia</label><input id="horaTermino" value="22:00" /></div>
-      </div>
-      <div class="grid two">
-        <div><label>Tipo de Local</label><input id="tipoLocal" value="Área externa (zona de mata)" /></div>
-        <div><label>Natureza da Ocorrência</label><input id="natureza" value="Morte a esclarecer" /></div>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>📍 Geolocalização</h2>
-      <div class="grid two">
-        <div><label>Longitude</label><input id="longitude" value="13255932" /></div>
-        <div><label>Latitude</label><input id="latitude" value="39574368" /></div>
-      </div>
-      <div class="btns">
-        <button class="btn-blue" onclick="capturarGPS()">📡 Capturar GPS do celular</button>
-        <button class="btn-muted" onclick="abrirMapa()">🗺️ Abrir no mapa</button>
-      </div>
-      <p class="small">A captura de GPS depende de autorização do navegador e pode não funcionar se o arquivo for aberto sem permissão de localização.</p>
-    </section>
-
-    <section class="card">
-      <h2>🔬 Vestígios e análise</h2>
-      <label>Vestígios Coletados</label>
-      <textarea id="vestigios">Swab e papelotes de material semelhante à droga.</textarea>
-      <label>Análise Preliminar</label>
-      <textarea id="analise">Este Perito foi informado pelo CICOM, via rádio, sobre um corpo encontrado na cidade de Jiquiriçá/BA, deslocando-se junto à equipe do plantão SILC. No local, foram constatados sinais de ação violenta e um corpo ainda não identificado.</textarea>
-    </section>
-
-    <section class="card">
-      <h2>⚰️ Vítima e informações complementares</h2>
-      <label>Provável qualificação da vítima e possível vínculo faccional</label>
-      <textarea id="vitima">RODRIGO DOS SANTOS NUNES (não confirmado envolvimento com facção).</textarea>
-      <label>Organização criminosa dominante / marcações em paredes e postes</label>
-      <textarea id="organizacao">Prejudicado.</textarea>
-      <label>Número do laudo da perícia de local e requisições complementares</label>
-      <textarea id="laudo">Guia 16873/2026. Enviada por e-mail padrão: crpt.stantonio@dpt.ba.gov.br</textarea>
-    </section>
-
-    <section class="card">
-      <h2>✉️ Destinatários</h2>
-      <label>E-mail do coordenador / destinatário</label>
-      <input id="emailDestino" type="email" placeholder="exemplo@dpt.ba.gov.br" />
-      <label>Assunto do e-mail</label>
-      <input id="assuntoEmail" value="Relatório de Ocorrência de Morte Violenta - CRPT Brumado" />
-      <p class="small">O botão de e-mail abre o aplicativo de e-mail do celular com assunto e corpo preenchidos. O envio final é feito pelo próprio aplicativo de e-mail.</p>
-    </section>
-
-    <section class="card">
-      <h2>📤 Gerar relatório</h2>
-      <div class="btns">
-        <button class="btn-primary" onclick="gerarRelatorio()">📝 Gerar texto</button>
-        <button class="btn-green" onclick="copiarRelatorio()">📋 Copiar texto</button>
-        <button class="btn-blue" onclick="enviarWhatsApp()">📲 Enviar por WhatsApp</button>
-        <button class="btn-dark" onclick="enviarEmail()">✉️ Enviar por e-mail</button>
-        <button class="btn-muted" onclick="salvarHistorico()">💾 Salvar no histórico</button>
-        <button class="btn-danger" onclick="limparHistorico()">🗑️ Limpar histórico</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>📑 Texto gerado</h2>
-      <div id="saida" class="output">Clique em “Gerar texto” para montar o relatório.</div>
-    </section>
-
-    <section class="card">
-      <h2>🗂️ Histórico salvo neste celular</h2>
-      <div id="historico" class="small">Nenhum registro carregado.</div>
-    </section>
-
-    <div class="footer">
-      Relatório de Ocorrência de Morte Violenta - CRPT Brumado<br>
-      Aplicativo HTML operacional para uso interno.
+  <div class="card">
+    <h2>📄 Dados da ocorrência</h2>
+    <div class="grid two">
+      <div><label>ID Ocorrência *</label><input id="idOcorrencia" value="BO 85485/2026"></div>
+      <div><label>Perito Responsável *</label><input id="perito" value="CARDOSO, K."></div>
     </div>
-  </main>
+    <div class="grid three">
+      <div><label>Data *</label><input id="data" type="date" value="2026-02-01"></div>
+      <div><label>Hora Chamado</label><input id="horaChamado" value="23:30"></div>
+      <div><label>Início Perícia</label><input id="horaInicio" value="21:00"></div>
+      <div><label>Término Perícia</label><input id="horaTermino" value="22:00"></div>
+    </div>
+    <div class="grid two">
+      <div><label>Tipo de Local *</label><input id="tipoLocal" value="Área externa (zona de mata)"></div>
+      <div><label>Natureza *</label><input id="natureza" value="Morte a esclarecer"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📍 Geolocalização</h2>
+    <div class="grid two">
+      <div><label>Latitude *</label><input id="latitude" value="-13.7845"></div>
+      <div><label>Longitude *</label><input id="longitude" value="-41.2563"></div>
+    </div>
+    <div><label>Endereço aproximado</label><input id="endereco" placeholder="Capturar GPS preenche"></div>
+    <div class="btns">
+      <button class="btn-blue" onclick="capturarGPS()">📡 Capturar GPS + Endereço</button>
+      <button class="btn-muted" onclick="abrirMapa()">🗺️ Abrir no mapa</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🔬 Vestígios e análise</h2>
+    <label>Vestígios Coletados <button type="button" class="btn-outline" style="padding:2px 8px;" onclick="dictar('vestigios')">🎤 Ditar</button></label>
+    <textarea id="vestigios">Swab e papelotes de material semelhante à droga.</textarea>
+    <label>Análise Preliminar <button type="button" class="btn-outline" style="padding:2px 8px;" onclick="dictar('analise')">🎤 Ditar</button></label>
+    <textarea id="analise">Este Perito foi informado pelo CICOM, via rádio, sobre um corpo encontrado na cidade de Jiquiriçá/BA...</textarea>
+  </div>
+
+  <div class="card">
+    <h2>⚰️ Vítima e informações</h2>
+    <label>Qualificação da vítima / vínculo faccional</label>
+    <textarea id="vitima">RODRIGO DOS SANTOS NUNES (não confirmado)</textarea>
+    <label>Organização dominante / marcações</label>
+    <textarea id="organizacao">Prejudicado.</textarea>
+    <label>Nº Laudo e requisições</label>
+    <textarea id="laudo">Guia 16873/2026. Enviada por e-mail.</textarea>
+  </div>
+
+  <div class="card">
+    <h2>📸 Fotos da cena (quantas quiser)</h2>
+    <div class="btns">
+      <button class="btn-blue" onclick="abrirCamera()">📸 Tirar foto (câmera)</button>
+      <button class="btn-muted" onclick="document.getElementById('fotosInput').click()">📁 Escolher da galeria</button>
+    </div>
+    <input type="file" id="fotosInput" accept="image/*" multiple style="display:none">
+    <div id="fotosPreview" class="thumb-grid"></div>
+    <p class="small">✔️ Fotos são comprimidas (max 1024px, qualidade 70%) para economizar espaço. O armazenamento agora usa IndexedDB, com capacidade muito maior.</p>
+  </div>
+
+  <div class="card">
+    <h2>✉️ Destinatários e assinatura</h2>
+    <label>E-mail do coordenador</label>
+    <input id="emailDestino" type="email" placeholder="coordenador@dpt.ba.gov.br">
+    <label>Assunto do e-mail</label>
+    <input id="assuntoEmail" value="Relatório de Ocorrência de Morte Violenta">
+    <label>Assinatura digital (nome)</label>
+    <input id="assinaturaNome" placeholder="Digite seu nome completo">
+  </div>
+
+  <div class="card">
+    <h2>📤 Ações</h2>
+    <div class="btns">
+      <button class="btn-green" onclick="gerarRelatorio()">📝 Gerar texto</button>
+      <button class="btn-primary" onclick="copiarRelatorio()">📋 Copiar</button>
+      <button class="btn-blue" onclick="gerarPDF()">📄 Gerar PDF</button>
+      <button class="btn-dark" onclick="enviarWhatsApp()">📲 WhatsApp</button>
+      <button class="btn-muted" onclick="enviarEmail()">✉️ Email</button>
+      <button class="btn-green" onclick="salvarHistorico()">💾 Salvar no histórico</button>
+      <button class="btn-danger" onclick="exportarHistorico()">📦 Exportar histórico (JSON)</button>
+      <button class="btn-muted" onclick="limparHistorico()">🗑️ Limpar histórico</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📑 Texto gerado</h2>
+    <div id="saida" class="output">Clique em "Gerar texto"</div>
+  </div>
+
+  <div class="card">
+    <h2>🗂️ Histórico (clique em um item para restaurar)</h2>
+    <div id="historico" class="small">Carregando...</div>
+  </div>
+</div>
+<div class="dark-toggle" onclick="toggleDarkMode()">🌙</div>
 
 <script>
-function v(id){return document.getElementById(id).value.trim();}
-function dataBR(valor){
-  if(!valor) return '';
-  const p = valor.split('-');
-  if(p.length===3) return `${p[2]}/${p[1]}/${p[0]}`;
-  return valor;
-}
-function gerarRelatorio(){
-  const texto = `RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA - CRPT BRUMADO\n\n`+
-`1. Nº ID Ocorrência: ${v('idOcorrencia')}\n\n`+
-`2. Perito Responsável: ${v('perito')}\n\n`+
-`3. Data da Ocorrência: ${dataBR(v('data'))}\n\n`+
-`4. Hora do Chamado: ${v('horaChamado')}\n\n`+
-`5. Hora de Início da Perícia: ${v('horaInicio')}\n\n`+
-`6. Hora de Término da Perícia: ${v('horaTermino')}\n\n`+
-`7. Geolocalização:\nLongitude: ${v('longitude')}\nLatitude: ${v('latitude')}\n\n`+
-`8. Tipo de Local: ${v('tipoLocal')}\n\n`+
-`9. Natureza da Ocorrência: ${v('natureza')}\n\n`+
-`10. Vestígios Coletados: ${v('vestigios')}\n\n`+
-`11. Análise Preliminar: ${v('analise')}\n\n`+
-`12. Provável qualificação da vítima e se a mesma é faccionada: ${v('vitima')}\n\n`+
-`13. Organização criminosa dominante do local / marcações em paredes e postes: ${v('organizacao')}\n\n`+
-`14. Número do laudo da perícia de local e requisições complementares: ${v('laudo')}\n\n`+
-`CRPT Brumado`;
-  document.getElementById('saida').textContent = texto;
-  return texto;
-}
-async function copiarRelatorio(){
-  const texto = gerarRelatorio();
-  try{
-    await navigator.clipboard.writeText(texto);
-    alert('Relatório copiado com sucesso.');
-  }catch(e){
-    alert('Não foi possível copiar automaticamente. Selecione o texto gerado e copie manualmente.');
-  }
-}
-function enviarWhatsApp(){
-  const texto = encodeURIComponent(gerarRelatorio());
-  window.open(`https://wa.me/?text=${texto}`,'_blank');
-}
-function enviarEmail(){
-  const destino = encodeURIComponent(v('emailDestino'));
-  const assunto = encodeURIComponent(v('assuntoEmail') || 'Relatório de Ocorrência de Morte Violenta - CRPT Brumado');
-  const corpo = encodeURIComponent(gerarRelatorio());
-  window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
-}
-function capturarGPS(){
-  if(!navigator.geolocation){alert('GPS não suportado neste navegador.');return;}
-  navigator.geolocation.getCurrentPosition(pos=>{
-    document.getElementById('latitude').value = pos.coords.latitude.toFixed(6);
-    document.getElementById('longitude').value = pos.coords.longitude.toFixed(6);
-    alert('Geolocalização capturada com sucesso.');
-  }, err=>{
-    alert('Não foi possível capturar a geolocalização. Verifique as permissões do navegador.');
-  }, {enableHighAccuracy:true, timeout:10000});
-}
-function abrirMapa(){
-  const lat=v('latitude'), lon=v('longitude');
-  if(!lat || !lon){alert('Informe latitude e longitude.');return;}
-  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat+','+lon)}`,'_blank');
-}
-function salvarHistorico(){
-  const texto = gerarRelatorio();
-  const lista = JSON.parse(localStorage.getItem('romv_crpt_brumado') || '[]');
-  lista.unshift({data:new Date().toLocaleString('pt-BR'), id:v('idOcorrencia'), texto});
-  localStorage.setItem('romv_crpt_brumado', JSON.stringify(lista.slice(0,20)));
-  carregarHistorico();
-  alert('Registro salvo no histórico deste aparelho.');
-}
-function carregarHistorico(){
-  const lista = JSON.parse(localStorage.getItem('romv_crpt_brumado') || '[]');
-  const el = document.getElementById('historico');
-  if(!lista.length){el.textContent='Nenhum registro salvo.';return;}
-  el.innerHTML = lista.map((r,i)=>`<div style="padding:8px 0;border-bottom:1px solid #e5e7eb"><b>${i+1}. ${r.id || 'Sem ID'}</b><br>${r.data}</div>`).join('');
-}
-function limparHistorico(){
-  if(confirm('Deseja apagar o histórico salvo neste aparelho?')){
-    localStorage.removeItem('romv_crpt_brumado');
-    carregarHistorico();
-  }
-}
-carregarHistorico();
-gerarRelatorio();
+  // ----------------------------- IndexedDB Setup -----------------------------
+  const DB_NAME = 'RomvDB';
+  const STORE_NAME = 'historico';
+  let db = null;
 
-// Registro do Service Worker para funcionar offline
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js')
-      .then(registration => {
-        console.log('Service Worker registrado com sucesso:', registration.scope);
-      })
-      .catch(error => {
-        console.log('Falha ao registrar o Service Worker:', error);
-      });
+  function abrirDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { autoIncrement: true });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function getDB() {
+    if (!db) db = await abrirDB();
+    return db;
+  }
+
+  async function salvarHistoricoIndexed(estado) {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    // Guarda o estado com timestamp e ID único
+    const registro = { ...estado, savedAt: new Date().toISOString() };
+    store.add(registro);
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function carregarHistoricoIndexed() {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const registros = await new Promise((resolve) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve([]);
+    });
+    // Ordem decrescente (mais recente primeiro)
+    return registros.reverse();
+  }
+
+  async function limparHistoricoIndexed() {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.clear();
+    return new Promise((resolve) => { tx.oncomplete = resolve; });
+  }
+
+  async function exportarHistoricoIndexed() {
+    const registros = await carregarHistoricoIndexed();
+    const blob = new Blob([JSON.stringify(registros, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `historico_romv_${new Date().toISOString().slice(0,19)}.json`;
+    a.click();
+  }
+
+  // ----------------------------- Compressão de imagem -----------------------------
+  function comprimirImagem(dataUrl, maxWidth = 1024, qualidade = 0.7) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL('image/jpeg', qualidade);
+        resolve(compressed);
+      };
+      img.src = dataUrl;
+    });
+  }
+
+  // ----------------------------- Fotos (sem limite, com compressão) -----------------------------
+  let fotosBase64 = [];
+
+  function atualizarPreviewFotos() {
+    const preview = document.getElementById('fotosPreview');
+    preview.innerHTML = '';
+    fotosBase64.forEach((foto, idx) => {
+      const div = document.createElement('div');
+      div.style.position = 'relative';
+      const img = document.createElement('img');
+      img.src = foto;
+      img.className = 'thumb';
+      const removeBtn = document.createElement('span');
+      removeBtn.textContent = '✖';
+      removeBtn.className = 'remove-foto';
+      removeBtn.onclick = () => { fotosBase64.splice(idx,1); atualizarPreviewFotos(); };
+      div.appendChild(img);
+      div.appendChild(removeBtn);
+      preview.appendChild(div);
+    });
+  }
+
+  async function adicionarFoto(file) {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const compressed = await comprimirImagem(e.target.result);
+      fotosBase64.push(compressed);
+      atualizarPreviewFotos();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Captura via câmera (abre a câmera diretamente)
+  function abrirCamera() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment'; // força câmera traseira
+    input.onchange = async (e) => {
+      if (e.target.files && e.target.files[0]) {
+        await adicionarFoto(e.target.files[0]);
+      }
+    };
+    input.click();
+  }
+
+  // Seleção múltipla via galeria
+  document.getElementById('fotosInput').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files);
+    for (let file of files) {
+      await adicionarFoto(file);
+    }
+    e.target.value = '';
   });
-}
+
+  // ----------------------------- Funções auxiliares -----------------------------
+  function v(id) { return document.getElementById(id).value.trim(); }
+  function dataBR(valor) { if(!valor) return ''; const p = valor.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : valor; }
+
+  function validarCamposObrigatorios() {
+    const obrigatorios = ['idOcorrencia', 'perito', 'data', 'tipoLocal', 'natureza', 'latitude', 'longitude'];
+    for(let campo of obrigatorios) if(!v(campo)) { alert(`Campo obrigatório: ${campo}`); return false; }
+    return true;
+  }
+
+  function gerarRelatorio() {
+    if(!validarCamposObrigatorios()) return '';
+    const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
+    let texto = `RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA - CRPT BRUMADO\n\n` +
+      `1. Nº ID Ocorrência: ${v('idOcorrencia')}\n` +
+      `2. Perito Responsável: ${v('perito')}\n` +
+      `3. Data: ${dataBR(v('data'))}\n` +
+      `4. Hora Chamado: ${v('horaChamado')}\n` +
+      `5. Início Perícia: ${v('horaInicio')}\n` +
+      `6. Término Perícia: ${v('horaTermino')}\n` +
+      `7. Geolocalização:\n   Longitude: ${v('longitude')}\n   Latitude: ${v('latitude')}\n   Endereço: ${v('endereco') || 'Não informado'}\n` +
+      `8. Tipo de Local: ${v('tipoLocal')}\n` +
+      `9. Natureza: ${v('natureza')}\n` +
+      `10. Vestígios: ${v('vestigios')}\n` +
+      `11. Análise Preliminar: ${v('analise')}\n` +
+      `12. Vítima: ${v('vitima')}\n` +
+      `13. Organização criminosa: ${v('organizacao')}\n` +
+      `14. Laudo: ${v('laudo')}\n` +
+      `15. Fotos anexadas: ${fotosBase64.length} imagem(ns)\n` +
+      `16. Assinatura: ${assinatura}\n\nCRPT Brumado - ${new Date().toLocaleString('pt-BR')}`;
+    document.getElementById('saida').textContent = texto;
+    return texto;
+  }
+
+  async function copiarRelatorio() { const t = gerarRelatorio(); if(t) { await navigator.clipboard.writeText(t); alert('Copiado!'); } }
+  function enviarWhatsApp() { const texto = encodeURIComponent(gerarRelatorio()); if(texto) window.open(`https://wa.me/?text=${texto}`,'_blank'); }
+  function enviarEmail() {
+    const destino = encodeURIComponent(v('emailDestino') || '');
+    const assunto = encodeURIComponent(v('assuntoEmail'));
+    const corpo = encodeURIComponent(gerarRelatorio());
+    window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
+  }
+
+  function capturarGPS() {
+    if(!navigator.geolocation) { alert('GPS não suportado'); return; }
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lon = pos.coords.longitude.toFixed(6);
+      document.getElementById('latitude').value = lat;
+      document.getElementById('longitude').value = lon;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+        const data = await res.json();
+        document.getElementById('endereco').value = data.display_name || `${lat}, ${lon}`;
+      } catch(e) { document.getElementById('endereco').value = `${lat}, ${lon}`; }
+      alert('GPS e endereço capturados!');
+    }, err => alert('Erro GPS: '+err.message));
+  }
+  function abrirMapa() { const lat=v('latitude'), lon=v('longitude'); if(lat && lon) window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`,'_blank'); else alert('Informe lat/lon.'); }
+
+  function obterEstadoAtual() {
+    return {
+      idOcorrencia: v('idOcorrencia'), perito: v('perito'), data: v('data'), horaChamado: v('horaChamado'),
+      horaInicio: v('horaInicio'), horaTermino: v('horaTermino'), tipoLocal: v('tipoLocal'), natureza: v('natureza'),
+      latitude: v('latitude'), longitude: v('longitude'), endereco: v('endereco'), vestigios: v('vestigios'),
+      analise: v('analise'), vitima: v('vitima'), organizacao: v('organizacao'), laudo: v('laudo'),
+      emailDestino: v('emailDestino'), assuntoEmail: v('assuntoEmail'), assinaturaNome: v('assinaturaNome'),
+      fotos: fotosBase64,
+      timestamp: new Date().toLocaleString('pt-BR')
+    };
+  }
+
+  function restaurarEstado(estado) {
+    for(let key in estado) if(key !== 'fotos' && document.getElementById(key)) document.getElementById(key).value = estado[key];
+    fotosBase64 = estado.fotos || [];
+    atualizarPreviewFotos();
+    document.getElementById('fotosInput').value = '';
+    gerarRelatorio();
+    alert('Registro restaurado do histórico!');
+  }
+
+  async function salvarHistorico() {
+    if(!validarCamposObrigatorios()) return;
+    const estado = obterEstadoAtual();
+    await salvarHistoricoIndexed(estado);
+    await carregarHistoricoUI();
+    alert('Salvo no histórico (IndexedDB)');
+  }
+
+  async function carregarHistoricoUI() {
+    const registros = await carregarHistoricoIndexed();
+    const div = document.getElementById('historico');
+    if(!registros.length) { div.innerHTML = 'Nenhum registro salvo.'; return; }
+    div.innerHTML = '';
+    registros.forEach((item, idx) => {
+      const card = document.createElement('div');
+      card.className = 'historico-item';
+      card.innerHTML = `<strong>${item.idOcorrencia || 'Sem ID'}</strong><br>${item.timestamp}<br><small>${item.perito || ''} - ${item.fotos?.length || 0} foto(s)</small>`;
+      card.onclick = () => restaurarEstado(item);
+      div.appendChild(card);
+    });
+  }
+
+  async function exportarHistorico() { await exportarHistoricoIndexed(); }
+  async function limparHistorico() { if(confirm('Apagar todo o histórico?')) { await limparHistoricoIndexed(); await carregarHistoricoUI(); } }
+
+  async function gerarPDF() {
+    const texto = gerarRelatorio();
+    if(!texto) return;
+    const element = document.createElement('div');
+    element.style.padding = '20px';
+    element.style.fontFamily = 'Arial';
+    element.style.background = 'white';
+    element.style.color = 'black';
+    element.innerHTML = `<pre style="white-space:pre-wrap;">${texto}</pre>`;
+    if(fotosBase64.length) {
+      element.innerHTML += '<h3>Fotos anexadas:</h3>';
+      fotosBase64.forEach(f => { element.innerHTML += `<img src="${f}" style="max-width:200px; margin:10px;">`; });
+    }
+    document.body.appendChild(element);
+    try {
+      await html2pdf().set({ margin: 0.5, filename: `relatorio_${v('idOcorrencia')}.pdf`, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } }).from(element).save();
+    } catch(e) { alert('Erro PDF: '+e); }
+    document.body.removeChild(element);
+  }
+
+  function dictar(campoId) {
+    if(!('webkitSpeechRecognition' in window)) { alert('Navegador não suporta ditado.'); return; }
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'pt-BR';
+    recognition.interimResults = false;
+    recognition.start();
+    recognition.onresult = (event) => {
+      const texto = event.results[0][0].transcript;
+      const campo = document.getElementById(campoId);
+      campo.value += (campo.value ? ' ' : '') + texto;
+    };
+    recognition.onerror = () => alert('Falha no reconhecimento.');
+  }
+
+  function autoSaveRascunho() { localStorage.setItem('romv_rascunho', JSON.stringify(obterEstadoAtual())); }
+  function carregarRascunho() {
+    const rascunho = localStorage.getItem('romv_rascunho');
+    if(rascunho && confirm('Rascunho automático encontrado. Restaurar?')) restaurarEstado(JSON.parse(rascunho));
+  }
+  setInterval(autoSaveRascunho, 30000);
+  window.addEventListener('load', async () => { 
+    await carregarRascunho(); 
+    await carregarHistoricoUI();
+    gerarRelatorio(); 
+  });
+
+  function toggleDarkMode() {
+    document.body.classList.toggle('dark');
+    const isDark = document.body.classList.contains('dark');
+    localStorage.setItem('darkMode', isDark);
+    document.querySelector('.dark-toggle').textContent = isDark ? '☀️' : '🌙';
+  }
+  if(localStorage.getItem('darkMode') === 'true') toggleDarkMode();
 </script>
 </body>
 </html>
