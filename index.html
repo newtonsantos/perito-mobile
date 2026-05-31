@@ -3,12 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-  <title>Relatório de Ocorrência de Morte Violenta - CRPT Brumado</title>
+  <title>Laudo Pericial - Morte Violenta - CRPT Brumado</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#7f1d1d">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <!-- Biblioteca para gerar PDF (opcional, será verificada) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     * { box-sizing: border-box; transition: background 0.2s, color 0.2s; }
     :root {
@@ -35,7 +33,7 @@
       color: var(--text);
       padding: 12px;
     }
-    .app { max-width: 800px; margin: 0 auto 30px; }
+    .app { max-width: 900px; margin: 0 auto 30px; }
     .header {
       background: linear-gradient(135deg, var(--primary), var(--primary2));
       color: white;
@@ -91,13 +89,13 @@
     .btn-danger { background: #b91c1c; }
     .btn-outline { background: transparent; border: 1px solid var(--primary2); color: var(--primary2); }
     .output {
-      background: #111827;
-      color: #f9fafb;
+      background: white;
+      color: black;
       border-radius: 14px;
-      padding: 14px;
+      padding: 20px;
       font-size: 14px;
-      white-space: pre-wrap;
-      min-height: 120px;
+      border: 1px solid var(--border);
+      font-family: 'Times New Roman', serif;
     }
     .small { font-size: 12px; color: var(--muted); margin-top: 8px; }
     .historico-item {
@@ -107,20 +105,93 @@
       border-radius: 12px;
       cursor: pointer;
     }
-    .thumb-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
-    .thumb { max-width: 80px; border-radius: 8px; border: 1px solid var(--border); }
-    .remove-foto { cursor: pointer; background: red; color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 4px; }
+    .thumb-grid { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px; }
+    .foto-item {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 8px;
+      text-align: center;
+      width: 180px;
+    }
+    .thumb { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+    .legenda-input { 
+      width: 100%; 
+      margin-top: 6px; 
+      padding: 5px;
+      font-size: 11px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+    }
+    .remove-foto {
+      cursor: pointer;
+      background: red;
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      margin-top: 5px;
+    }
     .dark-toggle {
       position: fixed; bottom: 20px; right: 20px; background: var(--primary); border-radius: 50%;
       width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
       font-size: 24px; cursor: pointer; box-shadow: var(--shadow); z-index: 1000;
+    }
+    /* Estilos para o relatório gerado (laudo) */
+    .laudo {
+      font-family: 'Times New Roman', Times, serif;
+      line-height: 1.4;
+    }
+    .laudo h1, .laudo h2 {
+      color: #7f1d1d;
+      text-align: center;
+    }
+    .laudo table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    .laudo td, .laudo th {
+      border: 1px solid #aaa;
+      padding: 8px;
+      vertical-align: top;
+    }
+    .laudo .destaque {
+      background: #f2f2f2;
+      font-weight: bold;
+      width: 30%;
+    }
+    .laudo .foto-legenda {
+      text-align: center;
+      margin: 20px 0;
+      page-break-inside: avoid;
+    }
+    .laudo .foto-legenda img {
+      max-width: 80%;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    .laudo .legenda-texto {
+      font-size: 12px;
+      font-style: italic;
+      margin-top: 5px;
+      color: #333;
+    }
+    @media print {
+      .btns, .dark-toggle, .card:not(.output), .header { display: none; }
+      .output { box-shadow: none; padding: 0; margin: 0; }
     }
   </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
-    <h1>⚰️ RELATÓRIO DE MORTE VIOLENTA<br><small>CRPT Brumado</small></h1>
+    <h1>⚖️ LAUDO PERICIAL - MORTE VIOLENTA<br><small>CRPT Brumado - Polícia Técnica</small></h1>
   </div>
 
   <div class="card">
@@ -159,7 +230,7 @@
     <label>Vestígios Coletados <button type="button" class="btn-outline" style="padding:2px 8px;" onclick="dictar('vestigios')">🎤 Ditar</button></label>
     <textarea id="vestigios">Swab e papelotes de material semelhante à droga.</textarea>
     <label>Análise Preliminar <button type="button" class="btn-outline" style="padding:2px 8px;" onclick="dictar('analise')">🎤 Ditar</button></label>
-    <textarea id="analise">Este Perito foi informado pelo CICOM, via rádio, sobre um corpo encontrado na cidade de Jiquiriçá/BA...</textarea>
+    <textarea id="analise">Este Perito foi informado pelo CICOM, via rádio, sobre um corpo encontrado na cidade de Jiquiriçá/BA. No local, foram observados...</textarea>
   </div>
 
   <div class="card">
@@ -173,14 +244,14 @@
   </div>
 
   <div class="card">
-    <h2>📸 Fotos da cena (quantas quiser)</h2>
+    <h2>📸 Fotos da cena (com legenda)</h2>
     <div class="btns">
       <button class="btn-blue" onclick="abrirCamera()">📸 Tirar foto (câmera)</button>
       <button class="btn-muted" onclick="document.getElementById('fotosInput').click()">📁 Escolher da galeria</button>
     </div>
     <input type="file" id="fotosInput" accept="image/*" multiple style="display:none">
     <div id="fotosPreview" class="thumb-grid"></div>
-    <p class="small">✔️ Fotos são comprimidas (max 1024px, qualidade 70%). Armazenamento via IndexedDB (sem limite prático).</p>
+    <p class="small">✔️ Fotos comprimidas. Clique no "✖" para remover. Para cada foto, insira uma legenda descritiva.</p>
   </div>
 
   <div class="card">
@@ -188,7 +259,7 @@
     <label>E-mail do coordenador</label>
     <input id="emailDestino" type="email" placeholder="coordenador@dpt.ba.gov.br">
     <label>Assunto do e-mail</label>
-    <input id="assuntoEmail" value="Relatório de Ocorrência de Morte Violenta">
+    <input id="assuntoEmail" value="Laudo Pericial - Morte Violenta">
     <label>Assinatura digital (nome)</label>
     <input id="assinaturaNome" placeholder="Digite seu nome completo">
   </div>
@@ -196,9 +267,9 @@
   <div class="card">
     <h2>📤 Ações</h2>
     <div class="btns">
-      <button class="btn-green" onclick="gerarRelatorio()">📝 Gerar texto</button>
-      <button class="btn-primary" onclick="copiarRelatorio()">📋 Copiar</button>
-      <button class="btn-blue" onclick="gerarPDF()">📄 Gerar PDF</button>
+      <button class="btn-green" onclick="gerarRelatorio()">📝 Gerar Laudo (HTML)</button>
+      <button class="btn-primary" onclick="copiarRelatorio()">📋 Copiar texto</button>
+      <button class="btn-blue" onclick="gerarPDF()">📄 Gerar PDF (com fotos/legendas)</button>
       <button class="btn-dark" onclick="enviarWhatsApp()">📲 WhatsApp</button>
       <button class="btn-muted" onclick="enviarEmail()">✉️ Email</button>
       <button class="btn-green" onclick="salvarHistorico()">💾 Salvar no histórico</button>
@@ -208,23 +279,22 @@
   </div>
 
   <div class="card">
-    <h2>📑 Texto gerado</h2>
-    <div id="saida" class="output">Clique em "Gerar texto"</div>
+    <h2>📑 Laudo pericial gerado</h2>
+    <div id="saida" class="output">Clique em "Gerar Laudo (HTML)"</div>
   </div>
 
   <div class="card">
-    <h2>🗂️ Histórico (clique em um item para restaurar)</h2>
+    <h2>🗂️ Histórico (clique para restaurar)</h2>
     <div id="historico" class="small">Carregando...</div>
   </div>
 </div>
 <div class="dark-toggle" onclick="toggleDarkMode()">🌙</div>
 
 <script>
-  // ----------------------------- IndexedDB Setup -----------------------------
+  // ----------------------------- IndexedDB (mesmo código) -----------------------------
   const DB_NAME = 'RomvDB';
   const STORE_NAME = 'historico';
   let db = null;
-
   function abrirDB() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, 1);
@@ -238,36 +308,22 @@
       request.onerror = () => reject(request.error);
     });
   }
-
-  async function getDB() {
-    if (!db) db = await abrirDB();
-    return db;
-  }
-
+  async function getDB() { if (!db) db = await abrirDB(); return db; }
   async function salvarHistoricoIndexed(estado) {
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     const registro = { ...estado, savedAt: new Date().toISOString() };
     store.add(registro);
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
+    return new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = reject; });
   }
-
   async function carregarHistoricoIndexed() {
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
-    const registros = await new Promise((resolve) => {
-      const request = store.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => resolve([]);
-    });
+    const registros = await new Promise((resolve) => { const request = store.getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => resolve([]); });
     return registros.reverse();
   }
-
   async function limparHistoricoIndexed() {
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -275,7 +331,6 @@
     store.clear();
     return new Promise((resolve) => { tx.oncomplete = resolve; });
   }
-
   async function exportarHistoricoIndexed() {
     const registros = await carregarHistoricoIndexed();
     const blob = new Blob([JSON.stringify(registros, null, 2)], {type: 'application/json'});
@@ -285,46 +340,30 @@
     a.click();
   }
 
-  // ----------------------------- Compressão de imagem -----------------------------
-  function comprimirImagem(dataUrl, maxWidth = 1024, qualidade = 0.7) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressed = canvas.toDataURL('image/jpeg', qualidade);
-        resolve(compressed);
-      };
-      img.src = dataUrl;
-    });
-  }
-
-  // ----------------------------- Fotos -----------------------------
-  let fotosBase64 = [];
+  // ----------------------------- Fotos com legenda -----------------------------
+  let fotosComLegenda = []; // cada item: { base64, legenda }
 
   function atualizarPreviewFotos() {
     const preview = document.getElementById('fotosPreview');
     preview.innerHTML = '';
-    fotosBase64.forEach((foto, idx) => {
+    fotosComLegenda.forEach((item, idx) => {
       const div = document.createElement('div');
-      div.style.position = 'relative';
+      div.className = 'foto-item';
       const img = document.createElement('img');
-      img.src = foto;
+      img.src = item.base64;
       img.className = 'thumb';
-      const removeBtn = document.createElement('span');
-      removeBtn.textContent = '✖';
+      const inputLegenda = document.createElement('input');
+      inputLegenda.type = 'text';
+      inputLegenda.placeholder = 'Legenda da foto...';
+      inputLegenda.value = item.legenda || '';
+      inputLegenda.className = 'legenda-input';
+      inputLegenda.oninput = (e) => { fotosComLegenda[idx].legenda = e.target.value; };
+      const removeBtn = document.createElement('div');
+      removeBtn.textContent = '✖ Remover';
       removeBtn.className = 'remove-foto';
-      removeBtn.onclick = () => { fotosBase64.splice(idx,1); atualizarPreviewFotos(); };
+      removeBtn.onclick = () => { fotosComLegenda.splice(idx,1); atualizarPreviewFotos(); };
       div.appendChild(img);
+      div.appendChild(inputLegenda);
       div.appendChild(removeBtn);
       preview.appendChild(div);
     });
@@ -335,7 +374,7 @@
     const reader = new FileReader();
     reader.onload = async (e) => {
       const compressed = await comprimirImagem(e.target.result);
-      fotosBase64.push(compressed);
+      fotosComLegenda.push({ base64: compressed, legenda: '' });
       atualizarPreviewFotos();
     };
     reader.readAsDataURL(file);
@@ -346,23 +385,33 @@
     input.type = 'file';
     input.accept = 'image/*';
     input.capture = 'environment';
-    input.onchange = async (e) => {
-      if (e.target.files && e.target.files[0]) {
-        await adicionarFoto(e.target.files[0]);
-      }
-    };
+    input.onchange = async (e) => { if (e.target.files && e.target.files[0]) await adicionarFoto(e.target.files[0]); };
     input.click();
   }
-
   document.getElementById('fotosInput').addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
-    for (let file of files) {
-      await adicionarFoto(file);
-    }
+    for (let file of files) await adicionarFoto(file);
     e.target.value = '';
   });
 
-  // ----------------------------- Funções principais -----------------------------
+  // ----------------------------- Compressão de imagem -----------------------------
+  function comprimirImagem(dataUrl, maxWidth = 1024, qualidade = 0.7) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width, height = img.height;
+        if (width > maxWidth) { height = (height * maxWidth) / width; width = maxWidth; }
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', qualidade));
+      };
+      img.src = dataUrl;
+    });
+  }
+
+  // ----------------------------- Funções auxiliares -----------------------------
   function v(id) { return document.getElementById(id).value.trim(); }
   function dataBR(valor) { if(!valor) return ''; const p = valor.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : valor; }
 
@@ -372,158 +421,158 @@
     return true;
   }
 
+  // ----------------------------- Geração do Laudo em HTML (com legendas) -----------------------------
   function gerarRelatorio() {
     if(!validarCamposObrigatorios()) return '';
     const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
-    let texto = `RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA - CRPT BRUMADO\n\n` +
-      `1. Nº ID Ocorrência: ${v('idOcorrencia')}\n` +
-      `2. Perito Responsável: ${v('perito')}\n` +
-      `3. Data: ${dataBR(v('data'))}\n` +
-      `4. Hora Chamado: ${v('horaChamado')}\n` +
-      `5. Início Perícia: ${v('horaInicio')}\n` +
-      `6. Término Perícia: ${v('horaTermino')}\n` +
-      `7. Geolocalização:\n   Longitude: ${v('longitude')}\n   Latitude: ${v('latitude')}\n   Endereço: ${v('endereco') || 'Não informado'}\n` +
-      `8. Tipo de Local: ${v('tipoLocal')}\n` +
-      `9. Natureza: ${v('natureza')}\n` +
-      `10. Vestígios: ${v('vestigios')}\n` +
-      `11. Análise Preliminar: ${v('analise')}\n` +
-      `12. Vítima: ${v('vitima')}\n` +
-      `13. Organização criminosa: ${v('organizacao')}\n` +
-      `14. Laudo: ${v('laudo')}\n` +
-      `15. Fotos anexadas: ${fotosBase64.length} imagem(ns)\n` +
-      `16. Assinatura: ${assinatura}\n\nCRPT Brumado - ${new Date().toLocaleString('pt-BR')}`;
-    document.getElementById('saida').textContent = texto;
-    return texto;
+    
+    let html = `<div class="laudo">
+      <h1>LAUDO PERICIAL DE MORTE VIOLENTA</h1>
+      <p style="text-align:center"><strong>CRPT Brumado - Polícia Técnica</strong></p>
+      <p style="text-align:center">Nº Ocorrência: ${v('idOcorrencia')}</p>
+      
+      <h2>1. DADOS DA OCORRÊNCIA</h2>
+      <table>
+        <tr><td class="destaque">Perito Responsável</td><td>${v('perito')}</td></tr>
+        <tr><td class="destaque">Data da Perícia</td><td>${dataBR(v('data'))} (Início: ${v('horaInicio')} - Término: ${v('horaTermino')})</td></tr>
+        <tr><td class="destaque">Hora do Chamado</td><td>${v('horaChamado')}</td></tr>
+        <tr><td class="destaque">Tipo de Local</td><td>${v('tipoLocal')}</td></tr>
+        <tr><td class="destaque">Natureza</td><td>${v('natureza')}</td></tr>
+      </table>
+      
+      <h2>2. GEOLOCALIZAÇÃO</h2>
+      <table>
+        <tr><td class="destaque">Coordenadas</td><td>Latitude: ${v('latitude')} &nbsp; Longitude: ${v('longitude')}</td></tr>
+        <tr><td class="destaque">Endereço aproximado</td><td>${v('endereco') || 'Não informado'}</td></tr>
+      </table>
+      
+      <h2>3. VÍTIMA E INFORMAÇÕES COMPLEMENTARES</h2>
+      <table>
+        <tr><td class="destaque">Qualificação da vítima</td><td>${v('vitima').replace(/\n/g, '<br>')}</td></tr>
+        <tr><td class="destaque">Organização criminosa / marcações</td><td>${v('organizacao').replace(/\n/g, '<br>')}</td></tr>
+        <tr><td class="destaque">Nº Laudo / requisições</td><td>${v('laudo').replace(/\n/g, '<br>')}</td></tr>
+      </table>
+      
+      <h2>4. VESTÍGIOS COLETADOS</h2>
+      <p>${v('vestigios').replace(/\n/g, '<br>')}</p>
+      
+      <h2>5. ANÁLISE PRELIMINAR</h2>
+      <p>${v('analise').replace(/\n/g, '<br>')}</p>
+      
+      <h2>6. REGISTRO FOTOGRÁFICO</h2>`;
+    
+    if (fotosComLegenda.length === 0) {
+      html += `<p>Nenhuma foto anexada.</p>`;
+    } else {
+      fotosComLegenda.forEach((item, idx) => {
+        html += `<div class="foto-legenda">
+          <img src="${item.base64}" alt="Foto ${idx+1}">
+          <div class="legenda-texto"><strong>Figura ${idx+1}:</strong> ${item.legenda ? item.legenda.replace(/</g, '&lt;').replace(/>/g, '&gt;') : 'Sem legenda'}</div>
+        </div>`;
+      });
+    }
+    
+    html += `<h2>7. CONCLUSÃO / ENCERRAMENTO</h2>
+      <p>Diante do exposto, o presente laudo pericial é encerrado e vai assinado digitalmente.</p>
+      
+      <p style="margin-top: 40px;">Brumado, ${new Date().toLocaleDateString('pt-BR')}.</p>
+      <p>_________________________________________<br>
+      <strong>${assinatura}</strong><br>
+      Perito Criminal - CRPT Brumado</p>
+      <p style="font-size:12px; color:#555;">Documento gerado em ${new Date().toLocaleString('pt-BR')}</p>
+    </div>`;
+    
+    document.getElementById('saida').innerHTML = html;
+    return html;
   }
 
-  async function copiarRelatorio() { const t = gerarRelatorio(); if(t) { await navigator.clipboard.writeText(t); alert('Copiado!'); } }
-  function enviarWhatsApp() { const texto = encodeURIComponent(gerarRelatorio()); if(texto) window.open(`https://wa.me/?text=${texto}`,'_blank'); }
+  async function copiarRelatorio() {
+    const html = gerarRelatorio();
+    if(html) {
+      // Copia o texto plano (remove tags para envio por email/whatsapp)
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const textPlain = tempDiv.textContent || tempDiv.innerText;
+      await navigator.clipboard.writeText(textPlain);
+      alert('Texto copiado (versão simplificada)');
+    }
+  }
+  
+  function enviarWhatsApp() {
+    const html = gerarRelatorio();
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    const texto = encodeURIComponent(tempDiv.textContent || tempDiv.innerText);
+    if(texto) window.open(`https://wa.me/?text=${texto}`,'_blank');
+  }
+  
   function enviarEmail() {
     const destino = encodeURIComponent(v('emailDestino') || '');
     const assunto = encodeURIComponent(v('assuntoEmail'));
-    const corpo = encodeURIComponent(gerarRelatorio());
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = gerarRelatorio();
+    const corpo = encodeURIComponent(tempDiv.textContent || tempDiv.innerText);
     window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
   }
 
-// ----------------------------- PDF via impressão (corrigido - SEM BRANCO) -----------------------------
-async function gerarPDF() {
-  const texto = gerarRelatorio();
-  if (!texto) return;
-
-  const btnPDF = document.querySelector('button[onclick="gerarPDF()"]');
-  const textoOriginal = btnPDF.innerHTML;
-  btnPDF.innerHTML = '⏳ Preparando impressão...';
-  btnPDF.disabled = true;
-
-  // Cria uma janela flutuante com o relatório completo
-  const win = window.open('', '_blank');
-  if (!win) {
-    alert('Permita pop-ups para gerar o PDF.');
-    btnPDF.disabled = false;
+  // ----------------------------- PDF via impressão com laudo completo -----------------------------
+  async function gerarPDF() {
+    const htmlLaudo = gerarRelatorio();
+    if (!htmlLaudo) return;
+    
+    const btnPDF = document.querySelector('button[onclick="gerarPDF()"]');
+    const textoOriginal = btnPDF.innerHTML;
+    btnPDF.innerHTML = '⏳ Preparando PDF...';
+    btnPDF.disabled = true;
+    
+    const win = window.open('', '_blank');
+    if (!win) {
+      alert('Permita pop-ups para gerar o PDF.');
+      btnPDF.disabled = false;
+      btnPDF.innerHTML = textoOriginal;
+      return;
+    }
+    
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Laudo ${v('idOcorrencia')}</title>
+        <style>
+          body { font-family: 'Times New Roman', Times, serif; margin: 20px; background: white; color: black; }
+          .laudo { max-width: 900px; margin: 0 auto; }
+          .laudo table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+          .laudo td, .laudo th { border: 1px solid #000; padding: 8px; vertical-align: top; }
+          .laudo .destaque { background: #f2f2f2; font-weight: bold; width: 30%; }
+          .foto-legenda { text-align: center; margin: 30px 0; page-break-inside: avoid; }
+          .foto-legenda img { max-width: 70%; border: 1px solid #ccc; border-radius: 8px; }
+          .legenda-texto { font-size: 12px; font-style: italic; margin-top: 8px; }
+          h1, h2 { color: #7f1d1d; text-align: center; }
+          @media print { body { margin: 0; padding: 10px; } }
+        </style>
+      </head>
+      <body>
+        ${htmlLaudo}
+      </body>
+      </html>
+    `);
+    win.document.close();
+    
+    // Aguarda imagens carregarem
+    const imagens = win.document.querySelectorAll('img');
+    if (imagens.length > 0) {
+      await Promise.all(Array.from(imagens).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+      }));
+    }
+    win.print();
     btnPDF.innerHTML = textoOriginal;
-    return;
+    btnPDF.disabled = false;
   }
 
-  // Monta o HTML da janela de impressão
-  win.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Relatório ${v('idOcorrencia')}</title>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-          font-family: 'Segoe UI', Arial, sans-serif;
-          padding: 20px;
-          color: #000;
-          background: #fff;
-          line-height: 1.5;
-        }
-        .header {
-          text-align: center;
-          border-bottom: 3px solid #7f1d1d;
-          padding-bottom: 10px;
-          margin-bottom: 20px;
-        }
-        .header h1 {
-          color: #7f1d1d;
-          font-size: 24px;
-        }
-        .content {
-          font-size: 14px;
-          white-space: pre-wrap;
-        }
-        .fotos {
-          margin-top: 30px;
-          page-break-before: avoid;
-        }
-        .fotos h3 {
-          border-bottom: 1px solid #ccc;
-          padding-bottom: 5px;
-          margin-bottom: 15px;
-        }
-        .fotos-grid {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 15px;
-          justify-content: center;
-        }
-        .fotos-grid img {
-          max-width: 45%;
-          border: 1px solid #aaa;
-          border-radius: 8px;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-          page-break-inside: avoid;
-        }
-        @media print {
-          body { margin: 0; padding: 15px; }
-          .fotos-grid img { max-width: 40%; break-inside: avoid; }
-          button { display: none; }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA<br><small>CRPT Brumado</small></h1>
-      </div>
-      <div class="content">
-        ${texto.replace(/\n/g, '<br>')}
-      </div>
-      ${fotosBase64.length ? `
-        <div class="fotos">
-          <h3>📸 Fotos anexadas (${fotosBase64.length})</h3>
-          <div class="fotos-grid">
-            ${fotosBase64.map(f => `<img src="${f}" alt="foto">`).join('')}
-          </div>
-        </div>
-      ` : ''}
-      <p style="margin-top: 40px; font-size: 12px; text-align: center; color: #555;">
-        Documento gerado em ${new Date().toLocaleString('pt-BR')}
-      </p>
-    </body>
-    </html>
-  `);
-
-  win.document.close();
-
-  // Aguarda as imagens carregarem e chama a impressão
-  const imagens = win.document.querySelectorAll('img');
-  if (imagens.length > 0) {
-    await Promise.all(Array.from(imagens).map(img => {
-      if (img.complete) return Promise.resolve();
-      return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
-    }));
-  }
-
-  win.print();
-  // Opcional: fechar a janela após impressão ou manter aberta
-  // win.onafterprint = () => win.close();
-
-  btnPDF.innerHTML = textoOriginal;
-  btnPDF.disabled = false;
-}
-  // ----------------------------- GPS -----------------------------
+  // ----------------------------- GPS (mantido) -----------------------------
   function capturarGPS() {
     if(!navigator.geolocation) { alert('GPS não suportado'); return; }
     navigator.geolocation.getCurrentPosition(async pos => {
@@ -536,13 +585,12 @@ async function gerarPDF() {
         const data = await res.json();
         document.getElementById('endereco').value = data.display_name || `${lat}, ${lon}`;
       } catch(e) { document.getElementById('endereco').value = `${lat}, ${lon}`; }
-      alert('GPS e endereço capturados!');
+      alert('GPS capturado!');
     }, err => alert('Erro GPS: '+err.message));
   }
-
   function abrirMapa() { const lat=v('latitude'), lon=v('longitude'); if(lat && lon) window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`,'_blank'); else alert('Informe lat/lon.'); }
 
-  // ----------------------------- Histórico (IndexedDB) -----------------------------
+  // ----------------------------- Histórico (adaptado para fotos com legenda) -----------------------------
   function obterEstadoAtual() {
     return {
       idOcorrencia: v('idOcorrencia'), perito: v('perito'), data: v('data'), horaChamado: v('horaChamado'),
@@ -550,44 +598,41 @@ async function gerarPDF() {
       latitude: v('latitude'), longitude: v('longitude'), endereco: v('endereco'), vestigios: v('vestigios'),
       analise: v('analise'), vitima: v('vitima'), organizacao: v('organizacao'), laudo: v('laudo'),
       emailDestino: v('emailDestino'), assuntoEmail: v('assuntoEmail'), assinaturaNome: v('assinaturaNome'),
-      fotos: fotosBase64,
+      fotosComLegenda: fotosComLegenda,
       timestamp: new Date().toLocaleString('pt-BR')
     };
   }
-
   function restaurarEstado(estado) {
-    for(let key in estado) if(key !== 'fotos' && document.getElementById(key)) document.getElementById(key).value = estado[key];
-    fotosBase64 = estado.fotos || [];
+    for(let key in estado) {
+      if(key !== 'fotosComLegenda' && document.getElementById(key)) document.getElementById(key).value = estado[key];
+    }
+    fotosComLegenda = estado.fotosComLegenda || [];
     atualizarPreviewFotos();
     document.getElementById('fotosInput').value = '';
     gerarRelatorio();
-    alert('Registro restaurado do histórico!');
+    alert('Registro restaurado!');
   }
-
   async function salvarHistorico() {
     if(!validarCamposObrigatorios()) return;
-    const estado = obterEstadoAtual();
-    await salvarHistoricoIndexed(estado);
+    await salvarHistoricoIndexed(obterEstadoAtual());
     await carregarHistoricoUI();
-    alert('Salvo no histórico (IndexedDB)');
+    alert('Salvo no histórico');
   }
-
   async function carregarHistoricoUI() {
     const registros = await carregarHistoricoIndexed();
     const div = document.getElementById('historico');
     if(!registros.length) { div.innerHTML = 'Nenhum registro salvo.'; return; }
     div.innerHTML = '';
-    registros.forEach((item, idx) => {
+    registros.forEach((item) => {
       const card = document.createElement('div');
       card.className = 'historico-item';
-      card.innerHTML = `<strong>${item.idOcorrencia || 'Sem ID'}</strong><br>${item.timestamp}<br><small>${item.perito || ''} - ${item.fotos?.length || 0} foto(s)</small>`;
+      card.innerHTML = `<strong>${item.idOcorrencia || 'Sem ID'}</strong><br>${item.timestamp}<br><small>${item.perito || ''} - ${item.fotosComLegenda?.length || 0} foto(s)</small>`;
       card.onclick = () => restaurarEstado(item);
       div.appendChild(card);
     });
   }
-
   async function exportarHistorico() { await exportarHistoricoIndexed(); }
-  async function limparHistorico() { if(confirm('Apagar todo o histórico?')) { await limparHistoricoIndexed(); await carregarHistoricoUI(); } }
+  async function limparHistorico() { if(confirm('Apagar histórico?')) { await limparHistoricoIndexed(); await carregarHistoricoUI(); } }
 
   // ----------------------------- Voz -----------------------------
   function dictar(campoId) {
@@ -608,13 +653,13 @@ async function gerarPDF() {
   function autoSaveRascunho() { localStorage.setItem('romv_rascunho', JSON.stringify(obterEstadoAtual())); }
   function carregarRascunho() {
     const rascunho = localStorage.getItem('romv_rascunho');
-    if(rascunho && confirm('Rascunho automático encontrado. Restaurar?')) restaurarEstado(JSON.parse(rascunho));
+    if(rascunho && confirm('Restaurar rascunho automático?')) restaurarEstado(JSON.parse(rascunho));
   }
   setInterval(autoSaveRascunho, 30000);
-  window.addEventListener('load', async () => { 
-    await carregarRascunho(); 
+  window.addEventListener('load', async () => {
+    await carregarRascunho();
     await carregarHistoricoUI();
-    gerarRelatorio(); 
+    gerarRelatorio();
   });
 
   // ----------------------------- Dark Mode -----------------------------
