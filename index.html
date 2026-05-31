@@ -93,6 +93,7 @@
     .btn-muted { background: #4b5563; }
     .btn-danger { background: #b91c1c; }
     .btn-outline { background: transparent; border: 1px solid var(--primary2); color: var(--primary2); }
+    .btn-orange { background: #e67e22; }
     .output {
       background: white;
       color: black;
@@ -268,7 +269,6 @@
       <button class="btn-muted" onclick="abrirMapa()">🗺️ Abrir no mapa (externo)</button>
       <button class="btn-muted" onclick="atualizarMapa()">🔄 Atualizar mapa</button>
     </div>
-    <!-- Container do mapa interativo -->
     <div id="mapid"></div>
     <p class="small">Mapa interativo de apoio. Ao gerar o laudo, uma imagem estática deste mapa será incluída no documento.</p>
   </div>
@@ -318,6 +318,7 @@
       <button class="btn-green" onclick="gerarRelatorioAsync()">📝 Gerar Laudo (com mapa)</button>
       <button class="btn-primary" onclick="copiarRelatorio()">📋 Copiar texto</button>
       <button class="btn-blue" onclick="gerarPDF()">📄 Gerar PDF (com fotos/mapa)</button>
+      <button class="btn-orange" onclick="exportarWord()">📝 Exportar para Word (editável)</button>
       <button class="btn-dark" onclick="enviarWhatsApp()">📲 WhatsApp</button>
       <button class="btn-muted" onclick="enviarEmail()">✉️ Email</button>
       <button class="btn-green" onclick="salvarHistorico()">💾 Salvar no histórico</button>
@@ -526,17 +527,14 @@
   async function gerarRelatorioAsync() {
     if(!validarCamposObrigatorios()) return;
     
-    // Mostra um indicador de carregamento
     const saidaDiv = document.getElementById('saida');
     saidaDiv.innerHTML = '<div style="text-align:center">⏳ Gerando laudo com mapa, aguarde...</div>';
     
-    // Tenta capturar o mapa como imagem
     let mapaImgBase64 = '';
     const lat = parseFloat(v('latitude'));
     const lng = parseFloat(v('longitude'));
     if (!isNaN(lat) && !isNaN(lng) && document.getElementById('mapid')) {
       try {
-        // Garante que o mapa esteja atualizado
         if (mapInstance) {
           mapInstance.setView([lat, lng], 15);
           if (markerInstance) mapInstance.removeLayer(markerInstance);
@@ -545,9 +543,7 @@
         } else {
           initMap(lat, lng);
         }
-        // Aguarda um pequeno delay para renderização
         await new Promise(r => setTimeout(r, 300));
-        // Captura o elemento do mapa
         const node = document.getElementById('mapid');
         mapaImgBase64 = await htmlToImage.toPng(node, { quality: 0.9, backgroundColor: '#ffffff' });
       } catch (err) {
@@ -556,7 +552,6 @@
       }
     }
     
-    // Monta o HTML base
     const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
     const titulo = obterTituloLaudo();
     const labelVitima = obterLabelVitima();
@@ -581,7 +576,6 @@
         <tr><td class="destaque">Endereço aproximado</td><td>${v('endereco') || 'Não informado'}</td></tr>
       </table>`;
     
-    // Adiciona a imagem do mapa se foi capturada
     if (mapaImgBase64) {
       html += `<div class="mapa-estatico">
         <strong>Localização geográfica:</strong><br>
@@ -633,7 +627,7 @@
     return html;
   }
 
-  // Versão em texto plano para WhatsApp/Email/Cópia (sem imagens)
+  // Versão em texto plano para WhatsApp/Email/Cópia
   function gerarTextoPlano() {
     if(!validarCamposObrigatorios()) return '';
     const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
@@ -680,9 +674,9 @@
     window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
   }
 
-  // ----------------------------- PDF via impressão (usa o HTML gerado) -----------------------------
+  // ----------------------------- PDF via impressão -----------------------------
   async function gerarPDF() {
-    const htmlLaudo = await gerarRelatorioAsync(); // aguarda a geração com mapa
+    const htmlLaudo = await gerarRelatorioAsync();
     if (!htmlLaudo) return;
     
     const btnPDF = document.querySelector('button[onclick="gerarPDF()"]');
@@ -726,7 +720,6 @@
     `);
     win.document.close();
     
-    // Aguarda todas as imagens carregarem (fotos + mapa)
     const imagens = win.document.querySelectorAll('img');
     if (imagens.length > 0) {
       await Promise.all(Array.from(imagens).map(img => {
@@ -737,6 +730,47 @@
     win.print();
     btnPDF.innerHTML = textoOriginal;
     btnPDF.disabled = false;
+  }
+
+  // ----------------------------- Exportar para Word (editável) -----------------------------
+  async function exportarWord() {
+    const htmlLaudo = await gerarRelatorioAsync();
+    if (!htmlLaudo) return;
+    
+    // Cria um documento HTML completo com formatação compatível com Word
+    const docHtml = `<!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Laudo ${v('idOcorrencia')}</title>
+      <style>
+        body { font-family: 'Times New Roman', Times, serif; margin: 2cm; line-height: 1.3; }
+        h1, h2 { color: #7f1d1d; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        td, th { border: 1px solid #000; padding: 6px; vertical-align: top; }
+        .destaque { background: #f2f2f2; font-weight: bold; width: 30%; }
+        .foto-legenda { text-align: center; margin: 20px 0; page-break-inside: avoid; }
+        .foto-legenda img { max-width: 70%; border: 1px solid #aaa; }
+        .mapa-estatico { text-align: center; margin: 20px 0; }
+        .mapa-estatico img { max-width: 80%; border: 1px solid #aaa; }
+        .legenda-texto { font-size: 11px; font-style: italic; margin-top: 5px; }
+      </style>
+    </head>
+    <body>
+      ${htmlLaudo}
+    </body>
+    </html>`;
+    
+    const blob = new Blob([docHtml], { type: 'application/msword' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = `Laudo_${v('idOcorrencia').replace(/[\/\\:*?"<>|]/g, '_')}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    alert('Arquivo Word gerado! Abra com o Microsoft Word ou LibreOffice para editar.');
   }
 
   // ----------------------------- GPS -----------------------------
@@ -783,7 +817,7 @@
     const tipoSelecionado = v('tipoLaudo');
     document.getElementById('divOutroTipo').style.display = (tipoSelecionado === 'Outro') ? 'block' : 'none';
     atualizarMapa();
-    await gerarRelatorioAsync(); // gera o laudo com mapa após restaurar
+    await gerarRelatorioAsync();
     alert('Registro restaurado!');
   }
   async function salvarHistorico() {
@@ -866,7 +900,7 @@
     const divOutro = document.getElementById('divOutroTipo');
     divOutro.style.display = (tipoSelecionado === 'Outro') ? 'block' : 'none';
     if (tipoSelecionado !== 'Outro') document.getElementById('outroTipo').value = '';
-    gerarRelatorioAsync(); // atualiza o título ao mudar o tipo
+    gerarRelatorioAsync();
   }
   document.getElementById('tipoLaudo').addEventListener('change', toggleOutroTipo);
   document.getElementById('outroTipo').addEventListener('input', () => gerarRelatorioAsync());
