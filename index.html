@@ -405,124 +405,124 @@
     window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
   }
 
-// ----------------------------- PDF (Corrigido Definitivo) -----------------------------
-  async function gerarPDF() {
-    const texto = gerarRelatorio();
-    if (!texto) return;
+// ----------------------------- PDF via impressão (corrigido - SEM BRANCO) -----------------------------
+async function gerarPDF() {
+  const texto = gerarRelatorio();
+  if (!texto) return;
 
-    // Altera o estado do botão
-    const btnPDF = document.querySelector('button[onclick="gerarPDF()"]');
-    const textoOriginalBtn = btnPDF.innerHTML;
-    btnPDF.innerHTML = '⏳ Gerando...';
-    btnPDF.disabled = true;
+  const btnPDF = document.querySelector('button[onclick="gerarPDF()"]');
+  const textoOriginal = btnPDF.innerHTML;
+  btnPDF.innerHTML = '⏳ Preparando impressão...';
+  btnPDF.disabled = true;
 
-    // Função auxiliar de fallback
-    function abrirImpressao() {
-      const win = window.open();
-      if (!win) {
-        alert('Permita pop-ups para gerar o PDF via impressão.');
-        return;
-      }
-      win.document.write(`
-        <html>
-          <head>
-            <title>Relatório ${v('idOcorrencia')}</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; color: black; background: white; }
-              img { max-width: 250px; margin: 10px; border: 1px solid #ccc; border-radius: 6px; }
-              .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #7f1d1d; padding-bottom: 10px; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h2 style="color: #7f1d1d;">RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA</h2>
-            </div>
-            <div style="font-size: 14px; line-height: 1.6;">
-              ${texto.replace(/\n/g, '<br>')}
-            </div>
-            ${fotosBase64.length ? '<h3>Fotos anexadas:</h3>' + fotosBase64.map(f => `<img src="${f}">`).join('') : ''}
-          </body>
-        </html>
-      `);
-      win.document.close();
-      win.print();
-    }
+  // Cria uma janela flutuante com o relatório completo
+  const win = window.open('', '_blank');
+  if (!win) {
+    alert('Permita pop-ups para gerar o PDF.');
+    btnPDF.disabled = false;
+    btnPDF.innerHTML = textoOriginal;
+    return;
+  }
 
-    if (typeof html2pdf === 'undefined') {
-      console.warn('html2pdf não carregado. Usando fallback.');
-      abrirImpressao();
-      btnPDF.innerHTML = textoOriginalBtn;
-      btnPDF.disabled = false;
-      return;
-    }
-
-    // 1. Sanitização: Impede que símbolos como "<" ou ">" quebrem o HTML na hora de gerar
-    const safeText = texto
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\n/g, '<br>');
-
-    // 2. Criar elemento ancorado ao DOM, mas escondido atrás da interface
-    const element = document.createElement('div');
-    element.style.position = 'absolute';
-    element.style.top = '0';
-    element.style.left = '0';
-    element.style.zIndex = '-9999';
-    element.style.width = '800px'; 
-    element.style.padding = '20px';
-    element.style.backgroundColor = '#ffffff';
-    element.style.color = '#000000';
-    element.style.fontFamily = 'Arial, sans-serif';
-
-    element.innerHTML = `
-      <div style="text-align: center; border-bottom: 2px solid #7f1d1d; margin-bottom: 20px; padding-bottom: 10px;">
-        <h2 style="color: #7f1d1d; margin: 0;">RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA</h2>
-        <p style="margin: 5px 0 0 0; font-size: 12px; color: #555;">CRPT Brumado</p>
+  // Monta o HTML da janela de impressão
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Relatório ${v('idOcorrencia')}</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          font-family: 'Segoe UI', Arial, sans-serif;
+          padding: 20px;
+          color: #000;
+          background: #fff;
+          line-height: 1.5;
+        }
+        .header {
+          text-align: center;
+          border-bottom: 3px solid #7f1d1d;
+          padding-bottom: 10px;
+          margin-bottom: 20px;
+        }
+        .header h1 {
+          color: #7f1d1d;
+          font-size: 24px;
+        }
+        .content {
+          font-size: 14px;
+          white-space: pre-wrap;
+        }
+        .fotos {
+          margin-top: 30px;
+          page-break-before: avoid;
+        }
+        .fotos h3 {
+          border-bottom: 1px solid #ccc;
+          padding-bottom: 5px;
+          margin-bottom: 15px;
+        }
+        .fotos-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 15px;
+          justify-content: center;
+        }
+        .fotos-grid img {
+          max-width: 45%;
+          border: 1px solid #aaa;
+          border-radius: 8px;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          page-break-inside: avoid;
+        }
+        @media print {
+          body { margin: 0; padding: 15px; }
+          .fotos-grid img { max-width: 40%; break-inside: avoid; }
+          button { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA<br><small>CRPT Brumado</small></h1>
       </div>
-      
-      <div style="font-size: 14px; line-height: 1.6;">
-        ${safeText}
+      <div class="content">
+        ${texto.replace(/\n/g, '<br>')}
       </div>
-      
       ${fotosBase64.length ? `
-        <div style="margin-top: 30px;">
-          <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #333;">Fotos anexadas:</h3>
-          <div style="text-align: center; margin-top: 15px;">
-            ${fotosBase64.map(f => `<img src="${f}" style="max-width: 45%; margin: 5px; border-radius: 4px; border: 1px solid #ddd; object-fit: contain;">`).join('')}
+        <div class="fotos">
+          <h3>📸 Fotos anexadas (${fotosBase64.length})</h3>
+          <div class="fotos-grid">
+            ${fotosBase64.map(f => `<img src="${f}" alt="foto">`).join('')}
           </div>
         </div>
       ` : ''}
-    `;
+      <p style="margin-top: 40px; font-size: 12px; text-align: center; color: #555;">
+        Documento gerado em ${new Date().toLocaleString('pt-BR')}
+      </p>
+    </body>
+    </html>
+  `);
 
-    document.body.appendChild(element);
+  win.document.close();
 
-    // 3. Pequeno delay obrigatório para o navegador renderizar as imagens no DOM falso antes de "tirar a foto"
-    await new Promise(r => setTimeout(r, 200));
-
-    const opt = {
-      margin: 10,
-      filename: `relatorio_${v('idOcorrencia').replace(/[^a-z0-9]/gi, '_')}.pdf`,
-      image: { type: 'jpeg', quality: 0.95 },
-      // 4. scale: 1 é o que impede o limite de memória de estourar nos celulares e gerar a folha em branco
-      html2canvas: { scale: 1, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    try {
-      await html2pdf().set(opt).from(element).save();
-    } catch (err) {
-      console.error('Erro na geração do PDF:', err);
-      alert('Falha ao gerar o arquivo PDF. O modo de impressão será aberto.');
-      abrirImpressao();
-    } finally {
-      // Limpeza da tela
-      document.body.removeChild(element);
-      btnPDF.innerHTML = textoOriginalBtn;
-      btnPDF.disabled = false;
-    }
+  // Aguarda as imagens carregarem e chama a impressão
+  const imagens = win.document.querySelectorAll('img');
+  if (imagens.length > 0) {
+    await Promise.all(Array.from(imagens).map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
+    }));
   }
+
+  win.print();
+  // Opcional: fechar a janela após impressão ou manter aberta
+  // win.onafterprint = () => win.close();
+
+  btnPDF.innerHTML = textoOriginal;
+  btnPDF.disabled = false;
+}
   // ----------------------------- GPS -----------------------------
   function capturarGPS() {
     if(!navigator.geolocation) { alert('GPS não suportado'); return; }
