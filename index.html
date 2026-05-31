@@ -405,12 +405,12 @@
     window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
   }
 
- // ----------------------------- PDF (Abordagem por String) -----------------------------
+// ----------------------------- PDF (Corrigido Definitivo) -----------------------------
   async function gerarPDF() {
     const texto = gerarRelatorio();
     if (!texto) return;
 
-    // Altera o estado do botão para indicar processamento
+    // Altera o estado do botão
     const btnPDF = document.querySelector('button[onclick="gerarPDF()"]');
     const textoOriginalBtn = btnPDF.innerHTML;
     btnPDF.innerHTML = '⏳ Gerando...';
@@ -456,46 +456,69 @@
       return;
     }
 
-    // Monta o layout completo do PDF como uma string HTML
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; color: black; background: white; padding: 10px;">
-        <div style="text-align: center; border-bottom: 2px solid #7f1d1d; margin-bottom: 20px; padding-bottom: 10px;">
-          <h2 style="color: #7f1d1d; margin: 0;">RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA</h2>
-          <p style="margin: 5px 0 0 0; font-size: 12px; color: #555;">CRPT Brumado</p>
-        </div>
-        
-        <div style="font-size: 14px; line-height: 1.6;">
-          ${texto.replace(/\n/g, '<br>')}
-        </div>
-        
-        ${fotosBase64.length ? `
-          <div style="margin-top: 30px;">
-            <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #333;">Fotos anexadas:</h3>
-            <div style="text-align: center; margin-top: 15px;">
-              ${fotosBase64.map(f => `<img src="${f}" style="max-width: 45%; margin: 5px; border-radius: 4px; border: 1px solid #ddd; display: inline-block;">`).join('')}
-            </div>
-          </div>
-        ` : ''}
+    // 1. Sanitização: Impede que símbolos como "<" ou ">" quebrem o HTML na hora de gerar
+    const safeText = texto
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+
+    // 2. Criar elemento ancorado ao DOM, mas escondido atrás da interface
+    const element = document.createElement('div');
+    element.style.position = 'absolute';
+    element.style.top = '0';
+    element.style.left = '0';
+    element.style.zIndex = '-9999';
+    element.style.width = '800px'; 
+    element.style.padding = '20px';
+    element.style.backgroundColor = '#ffffff';
+    element.style.color = '#000000';
+    element.style.fontFamily = 'Arial, sans-serif';
+
+    element.innerHTML = `
+      <div style="text-align: center; border-bottom: 2px solid #7f1d1d; margin-bottom: 20px; padding-bottom: 10px;">
+        <h2 style="color: #7f1d1d; margin: 0;">RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA</h2>
+        <p style="margin: 5px 0 0 0; font-size: 12px; color: #555;">CRPT Brumado</p>
       </div>
+      
+      <div style="font-size: 14px; line-height: 1.6;">
+        ${safeText}
+      </div>
+      
+      ${fotosBase64.length ? `
+        <div style="margin-top: 30px;">
+          <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #333;">Fotos anexadas:</h3>
+          <div style="text-align: center; margin-top: 15px;">
+            ${fotosBase64.map(f => `<img src="${f}" style="max-width: 45%; margin: 5px; border-radius: 4px; border: 1px solid #ddd; object-fit: contain;">`).join('')}
+          </div>
+        </div>
+      ` : ''}
     `;
+
+    document.body.appendChild(element);
+
+    // 3. Pequeno delay obrigatório para o navegador renderizar as imagens no DOM falso antes de "tirar a foto"
+    await new Promise(r => setTimeout(r, 200));
 
     const opt = {
       margin: 10,
       filename: `relatorio_${v('idOcorrencia').replace(/[^a-z0-9]/gi, '_')}.pdf`,
       image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      // 4. scale: 1 é o que impede o limite de memória de estourar nos celulares e gerar a folha em branco
+      html2canvas: { scale: 1, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     try {
-      // Passa a string HTML diretamente para a biblioteca
-      await html2pdf().set(opt).from(htmlContent).save();
+      await html2pdf().set(opt).from(element).save();
     } catch (err) {
       console.error('Erro na geração do PDF:', err);
       alert('Falha ao gerar o arquivo PDF. O modo de impressão será aberto.');
       abrirImpressao();
     } finally {
-      // Restaura o botão
+      // Limpeza da tela
+      document.body.removeChild(element);
       btnPDF.innerHTML = textoOriginalBtn;
       btnPDF.disabled = false;
     }
