@@ -405,12 +405,18 @@
     window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
   }
 
-  // ----------------------------- PDF (Corrigido) -----------------------------
+ // ----------------------------- PDF (Abordagem por String) -----------------------------
   async function gerarPDF() {
     const texto = gerarRelatorio();
     if (!texto) return;
 
-    // Função auxiliar para gerar a página de impressão (fallback)
+    // Altera o estado do botão para indicar processamento
+    const btnPDF = document.querySelector('button[onclick="gerarPDF()"]');
+    const textoOriginalBtn = btnPDF.innerHTML;
+    btnPDF.innerHTML = '⏳ Gerando...';
+    btnPDF.disabled = true;
+
+    // Função auxiliar de fallback
     function abrirImpressao() {
       const win = window.open();
       if (!win) {
@@ -422,19 +428,19 @@
           <head>
             <title>Relatório ${v('idOcorrencia')}</title>
             <style>
-              body { font-family: Arial, sans-serif; padding: 20px; }
-              pre { white-space: pre-wrap; font-family: monospace; }
-              img { max-width: 200px; margin: 10px; border: 1px solid #ccc; }
-              .header { text-align: center; margin-bottom: 20px; }
+              body { font-family: Arial, sans-serif; padding: 20px; color: black; background: white; }
+              img { max-width: 250px; margin: 10px; border: 1px solid #ccc; border-radius: 6px; }
+              .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #7f1d1d; padding-bottom: 10px; }
             </style>
           </head>
           <body>
             <div class="header">
-              <h2>RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA - CRPT BRUMADO</h2>
+              <h2 style="color: #7f1d1d;">RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA</h2>
             </div>
-            <pre>${texto.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+            <div style="font-size: 14px; line-height: 1.6;">
+              ${texto.replace(/\n/g, '<br>')}
+            </div>
             ${fotosBase64.length ? '<h3>Fotos anexadas:</h3>' + fotosBase64.map(f => `<img src="${f}">`).join('') : ''}
-            <p style="margin-top: 40px; text-align: center;">Documento gerado em ${new Date().toLocaleString('pt-BR')}</p>
           </body>
         </html>
       `);
@@ -442,76 +448,56 @@
       win.print();
     }
 
-    // Verifica se a biblioteca html2pdf está disponível
     if (typeof html2pdf === 'undefined') {
-      console.warn('html2pdf não carregado. Usando fallback de impressão.');
+      console.warn('html2pdf não carregado. Usando fallback.');
       abrirImpressao();
+      btnPDF.innerHTML = textoOriginalBtn;
+      btnPDF.disabled = false;
       return;
     }
 
-    // CONVERSÃO DO TEXTO: Troca as quebras de linha padrão por <br>
-    const textoFormatado = texto.replace(/\n/g, '<br>');
+    // Monta o layout completo do PDF como uma string HTML
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; color: black; background: white; padding: 10px;">
+        <div style="text-align: center; border-bottom: 2px solid #7f1d1d; margin-bottom: 20px; padding-bottom: 10px;">
+          <h2 style="color: #7f1d1d; margin: 0;">RELATÓRIO DE OCORRÊNCIA DE MORTE VIOLENTA</h2>
+          <p style="margin: 5px 0 0 0; font-size: 12px; color: #555;">CRPT Brumado</p>
+        </div>
+        
+        <div style="font-size: 14px; line-height: 1.6;">
+          ${texto.replace(/\n/g, '<br>')}
+        </div>
+        
+        ${fotosBase64.length ? `
+          <div style="margin-top: 30px;">
+            <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #333;">Fotos anexadas:</h3>
+            <div style="text-align: center; margin-top: 15px;">
+              ${fotosBase64.map(f => `<img src="${f}" style="max-width: 45%; margin: 5px; border-radius: 4px; border: 1px solid #ddd; display: inline-block;">`).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
 
-    // Cria elemento temporário para conversão com CSS corrigido
-    const element = document.createElement('div');
-    element.style.position = 'absolute';
-    element.style.top = '0';
-    element.style.left = '0';
-    element.style.width = '800px'; // Força uma largura fixa para o html2canvas calcular bem
-    element.style.zIndex = '-9999'; // Esconde atrás da interface, não fora da tela
-    element.style.backgroundColor = 'white';
-    element.style.color = 'black';
-    element.style.padding = '40px'; // Margem interna
-    element.style.fontFamily = 'Arial, sans-serif';
-    element.style.fontSize = '14px';
-    element.style.lineHeight = '1.5';
-    
-    // Insere o texto em uma div normal no lugar do <pre>
-    element.innerHTML = `<div>${textoFormatado}</div>`;
-    
-    if (fotosBase64.length) {
-      const fotosDiv = document.createElement('div');
-      fotosDiv.innerHTML = '<h3 style="margin-top: 30px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Fotos anexadas:</h3>';
-      fotosBase64.forEach(f => {
-        const img = document.createElement('img');
-        img.src = f;
-        img.style.maxWidth = '300px'; // Aumentado um pouco para o PDF
-        img.style.maxHeight = '300px';
-        img.style.margin = '10px';
-        img.style.borderRadius = '6px';
-        img.style.objectFit = 'contain';
-        fotosDiv.appendChild(img);
-      });
-      element.appendChild(fotosDiv);
-    }
-    
-    document.body.appendChild(element);
-    
-    // Aumentamos o delay para 300ms para garantir que o DOM renderizou as imagens em Base64
-    await new Promise(r => setTimeout(r, 300));
-    
     const opt = {
-      margin: 15, // Usando milímetros em vez de polegadas (in) evita cortes
+      margin: 10,
       filename: `relatorio_${v('idOcorrencia').replace(/[^a-z0-9]/gi, '_')}.pdf`,
       image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, // Garante que as imagens renderizem
-        logging: false 
-      },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    
+
     try {
-      // É mais seguro passar as opções (.set) antes do conteúdo (.from)
-      await html2pdf().set(opt).from(element).save();
-      console.log('PDF gerado com sucesso via html2pdf');
+      // Passa a string HTML diretamente para a biblioteca
+      await html2pdf().set(opt).from(htmlContent).save();
     } catch (err) {
-      console.error('Erro no html2pdf:', err);
-      alert('Não foi possível gerar o PDF automaticamente. Será aberta a janela de impressão para salvar como PDF.');
+      console.error('Erro na geração do PDF:', err);
+      alert('Falha ao gerar o arquivo PDF. O modo de impressão será aberto.');
       abrirImpressao();
     } finally {
-      document.body.removeChild(element);
+      // Restaura o botão
+      btnPDF.innerHTML = textoOriginalBtn;
+      btnPDF.disabled = false;
     }
   }
   // ----------------------------- GPS -----------------------------
