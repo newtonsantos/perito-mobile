@@ -12,6 +12,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- html-to-image para capturar o mapa -->
   <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <!-- Biblioteca docx para gerar Word verdadeiro -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js"></script>
   <style>
     * { box-sizing: border-box; transition: background 0.2s, color 0.2s; }
     :root {
@@ -94,6 +96,7 @@
     .btn-danger { background: #b91c1c; }
     .btn-outline { background: transparent; border: 1px solid var(--primary2); color: var(--primary2); }
     .btn-orange { background: #e67e22; }
+    .btn-cyan { background: #0891b2; }
     .output {
       background: white;
       color: black;
@@ -316,9 +319,10 @@
     <h2>📤 Ações</h2>
     <div class="btns">
       <button class="btn-green" onclick="gerarRelatorioAsync()">📝 Gerar Laudo (com mapa)</button>
+      <button class="btn-cyan" onclick="abrirLaudoNovaAba()">👁️ Visualizar laudo em nova aba</button>
       <button class="btn-primary" onclick="copiarRelatorio()">📋 Copiar texto</button>
       <button class="btn-blue" onclick="gerarPDF()">📄 Gerar PDF (com fotos/mapa)</button>
-      <button class="btn-orange" onclick="exportarWord()">📝 Exportar para Word (editável)</button>
+      <button class="btn-orange" onclick="exportarDocx()">📄 Exportar para Word (.docx)</button>
       <button class="btn-dark" onclick="enviarWhatsApp()">📲 WhatsApp</button>
       <button class="btn-muted" onclick="enviarEmail()">✉️ Email</button>
       <button class="btn-green" onclick="salvarHistorico()">💾 Salvar no histórico</button>
@@ -523,12 +527,9 @@
     return 'Qualificação da vítima / envolvido(s)';
   }
 
-  // ----------------------------- Geração do Laudo com imagem do mapa (ASSÍNCRONA) -----------------------------
-  async function gerarRelatorioAsync() {
-    if(!validarCamposObrigatorios()) return;
-    
-    const saidaDiv = document.getElementById('saida');
-    saidaDiv.innerHTML = '<div style="text-align:center">⏳ Gerando laudo com mapa, aguarde...</div>';
+  // ----------------------------- Geração do Laudo em HTML (para preview e PDF) -----------------------------
+  async function gerarHtmlLaudo() {
+    if(!validarCamposObrigatorios()) return null;
     
     let mapaImgBase64 = '';
     const lat = parseFloat(v('latitude'));
@@ -538,12 +539,11 @@
         if (mapInstance) {
           mapInstance.setView([lat, lng], 15);
           if (markerInstance) mapInstance.removeLayer(markerInstance);
-          markerInstance = L.marker([lat, lng]).addTo(mapInstance)
-            .bindPopup(`Local: ${lat}, ${lng}`).openPopup();
+          markerInstance = L.marker([lat, lng]).addTo(mapInstance).bindPopup(`Local: ${lat}, ${lng}`).openPopup();
         } else {
           initMap(lat, lng);
         }
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 500));
         const node = document.getElementById('mapid');
         mapaImgBase64 = await htmlToImage.toPng(node, { quality: 0.9, backgroundColor: '#ffffff' });
       } catch (err) {
@@ -579,7 +579,7 @@
     if (mapaImgBase64) {
       html += `<div class="mapa-estatico">
         <strong>Localização geográfica:</strong><br>
-        <img src="${mapaImgBase64}" alt="Mapa estático da localização">
+        <img src="${mapaImgBase64}" alt="Mapa estático">
         <div class="legenda-texto">Figura - Mapa do local da perícia (coordenadas informadas).</div>
       </div>`;
     } else {
@@ -623,50 +623,231 @@
       <p style="font-size:12px; color:#555;">Documento gerado em ${new Date().toLocaleString('pt-BR')}</p>
     </div>`;
     
-    saidaDiv.innerHTML = html;
     return html;
   }
 
-  // Versão em texto plano para WhatsApp/Email/Cópia
+  async function gerarRelatorioAsync() {
+    const html = await gerarHtmlLaudo();
+    if (html) {
+      document.getElementById('saida').innerHTML = html;
+      return html;
+    }
+    return '';
+  }
+
+  // Abrir laudo em nova aba (perfeito para celular)
+  async function abrirLaudoNovaAba() {
+    const html = await gerarHtmlLaudo();
+    if (!html) return;
+    const win = window.open();
+    if (!win) {
+      alert('Permita pop-ups para abrir o laudo em nova aba.');
+      return;
+    }
+    win.document.write(`<!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Laudo ${v('idOcorrencia')}</title>
+        <style>
+          body { font-family: 'Times New Roman', Times, serif; margin: 2cm; }
+          .laudo table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+          .laudo td, .laudo th { border: 1px solid #000; padding: 6px; }
+          .laudo .destaque { background: #f2f2f2; font-weight: bold; }
+          .foto-legenda, .mapa-estatico { text-align: center; margin: 20px 0; }
+          .foto-legenda img, .mapa-estatico img { max-width: 80%; border: 1px solid #aaa; border-radius: 8px; }
+          .legenda-texto { font-size: 12px; font-style: italic; margin-top: 5px; }
+          h1, h2 { color: #7f1d1d; text-align: center; }
+        </style>
+      </head>
+      <body>${html}</body>
+      </html>`);
+    win.document.close();
+  }
+
+  // ----------------------------- Exportar para Word (.docx verdadeiro) -----------------------------
+  async function exportarDocx() {
+    if (!validarCamposObrigatorios()) return;
+    
+    const btn = document.querySelector('button[onclick="exportarDocx()"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Gerando .docx...';
+    btn.disabled = true;
+    
+    try {
+      // 1. Capturar mapa estático atualizado
+      let mapaImgBase64 = '';
+      const lat = parseFloat(v('latitude'));
+      const lng = parseFloat(v('longitude'));
+      if (!isNaN(lat) && !isNaN(lng)) {
+        try {
+          if (mapInstance) {
+            mapInstance.setView([lat, lng], 15);
+            if (markerInstance) mapInstance.removeLayer(markerInstance);
+            markerInstance = L.marker([lat, lng]).addTo(mapInstance).bindPopup(`Local: ${lat}, ${lng}`).openPopup();
+          } else {
+            initMap(lat, lng);
+          }
+          await new Promise(r => setTimeout(r, 500));
+          const node = document.getElementById('mapid');
+          mapaImgBase64 = await htmlToImage.toPng(node, { quality: 0.8, backgroundColor: '#ffffff' });
+        } catch (e) { console.warn('Falha no mapa', e); }
+      }
+      
+      // 2. Preparar os dados para o docx
+      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, BorderStyle, AlignmentType, ImageRun, HeadingLevel } = docx;
+      
+      // Helper para converter base64 para Uint8Array (imagem)
+      function base64ToUint8Array(base64) {
+        const binaryString = atob(base64.split(',')[1]);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+        return bytes;
+      }
+      
+      // Função para criar imagem a partir de base64
+      async function createImageRun(base64, maxWidth = 500) {
+        const imageBuffer = base64ToUint8Array(base64);
+        const imageRun = await ImageRun.fromImageBuffer(imageBuffer);
+        // redimensionar (opcional, mas no docx é feito via dimension)
+        imageRun.options = { ...imageRun.options, transformation: { width: maxWidth, height: 'auto' } };
+        return new Paragraph({ children: [imageRun], alignment: AlignmentType.CENTER });
+      }
+      
+      // Título principal
+      const titulo = obterTituloLaudo();
+      const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
+      
+      // Seções do documento
+      const children = [];
+      
+      // Título
+      children.push(new Paragraph({ text: titulo, heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER, spacing: { after: 200 } }));
+      children.push(new Paragraph({ text: 'CRPT Brumado - Polícia Técnica', alignment: AlignmentType.CENTER, spacing: { after: 100 } }));
+      children.push(new Paragraph({ text: `Nº Ocorrência: ${v('idOcorrencia')}`, alignment: AlignmentType.CENTER, spacing: { after: 300 } }));
+      
+      // 1. Dados da ocorrência
+      children.push(new Paragraph({ text: '1. DADOS DA OCORRÊNCIA', heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
+      const tabela1 = new Table({
+        rows: [
+          new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: 'Perito Responsável', bold: true })] }), new TableCell({ children: [new Paragraph(v('perito'))] })] }),
+          new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: 'Data da Perícia', bold: true })] }), new TableCell({ children: [new Paragraph(`${dataBR(v('data'))} (Início: ${v('horaInicio')} - Término: ${v('horaTermino')})`)] })] }),
+          new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: 'Hora do Chamado', bold: true })] }), new TableCell({ children: [new Paragraph(v('horaChamado'))] })] }),
+          new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: 'Tipo de Local', bold: true })] }), new TableCell({ children: [new Paragraph(v('tipoLocal'))] })] }),
+          new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: 'Natureza', bold: true })] }), new TableCell({ children: [new Paragraph(v('natureza'))] })] })
+        ],
+        alignment: AlignmentType.CENTER,
+        width: { size: 100, type: 'pct' }
+      });
+      children.push(tabela1);
+      
+      // 2. Geolocalização
+      children.push(new Paragraph({ text: '2. GEOLOCALIZAÇÃO', heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
+      const tabela2 = new Table({
+        rows: [
+          new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: 'Coordenadas', bold: true })] }), new TableCell({ children: [new Paragraph(`Latitude: ${v('latitude')}  Longitude: ${v('longitude')}`)] })] }),
+          new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: 'Endereço aproximado', bold: true })] }), new TableCell({ children: [new Paragraph(v('endereco') || 'Não informado')] })] })
+        ]
+      });
+      children.push(tabela2);
+      
+      // Mapa estático
+      if (mapaImgBase64) {
+        try {
+          const imgParagraph = await createImageRun(mapaImgBase64, 500);
+          children.push(imgParagraph);
+          children.push(new Paragraph({ text: 'Figura - Mapa do local da perícia (coordenadas informadas).', alignment: AlignmentType.CENTER, italics: true, spacing: { after: 200 } }));
+        } catch(e) { console.warn('Erro ao inserir mapa', e); }
+      } else {
+        children.push(new Paragraph({ text: 'Mapa não disponível (coordenadas inválidas ou erro na captura).', spacing: { after: 200 } }));
+      }
+      
+      // 3. Vítima/Envolvidos
+      const labelVitima = obterLabelVitima();
+      children.push(new Paragraph({ text: `3. ${labelVitima}`, heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
+      const tabela3 = new Table({
+        rows: [
+          new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: 'Descrição', bold: true })] }), new TableCell({ children: [new Paragraph(v('vitima'))] })] }),
+          new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: 'Organização criminosa / marcações', bold: true })] }), new TableCell({ children: [new Paragraph(v('organizacao'))] })] }),
+          new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: 'Nº Laudo / requisições', bold: true })] }), new TableCell({ children: [new Paragraph(v('laudo'))] })] })
+        ]
+      });
+      children.push(tabela3);
+      
+      // 4. Vestígios
+      children.push(new Paragraph({ text: '4. VESTÍGIOS COLETADOS', heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
+      children.push(new Paragraph(v('vestigios')));
+      
+      // 5. Análise
+      children.push(new Paragraph({ text: '5. ANÁLISE PRELIMINAR', heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
+      children.push(new Paragraph(v('analise')));
+      
+      // 6. Fotos
+      children.push(new Paragraph({ text: '6. REGISTRO FOTOGRÁFICO', heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
+      if (fotosComLegenda.length === 0) {
+        children.push(new Paragraph('Nenhuma foto anexada.'));
+      } else {
+        for (let i = 0; i < fotosComLegenda.length; i++) {
+          const foto = fotosComLegenda[i];
+          try {
+            const imgPara = await createImageRun(foto.base64, 450);
+            children.push(imgPara);
+            const legenda = foto.legenda ? foto.legenda : 'Sem legenda';
+            children.push(new Paragraph({ text: `Figura ${i+1}: ${legenda}`, alignment: AlignmentType.CENTER, italics: true, spacing: { after: 200 } }));
+          } catch(e) { console.warn('Erro ao inserir foto', e); }
+        }
+      }
+      
+      // 7. Conclusão
+      children.push(new Paragraph({ text: '7. CONCLUSÃO / ENCERRAMENTO', heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
+      children.push(new Paragraph('Diante do exposto, o presente laudo pericial é encerrado e vai assinado digitalmente.'));
+      children.push(new Paragraph({ text: `Brumado, ${new Date().toLocaleDateString('pt-BR')}.`, spacing: { before: 300 } }));
+      children.push(new Paragraph('_________________________________________'));
+      children.push(new Paragraph({ text: assinatura, bold: true }));
+      children.push(new Paragraph('Perito Criminal - CRPT Brumado'));
+      children.push(new Paragraph({ text: `Documento gerado em ${new Date().toLocaleString('pt-BR')}`, size: 20, italics: true, spacing: { before: 100 } }));
+      
+      const doc = new Document({ sections: [{ properties: {}, children }] });
+      const blob = await Packer.toBlob(doc);
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.href = url;
+      link.download = `Laudo_${v('idOcorrencia').replace(/[\/\\:*?"<>|]/g, '_')}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      alert('Arquivo .docx gerado com sucesso! Abra no Word (celular ou PC) para editar.');
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao gerar o arquivo .docx: ' + err.message);
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  // ----------------------------- Versão texto plano para WhatsApp/Email -----------------------------
   function gerarTextoPlano() {
     if(!validarCamposObrigatorios()) return '';
     const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
-    let texto = `${obterTituloLaudo()}\n\n` +
+    return `${obterTituloLaudo()}\n\n` +
       `CRPT Brumado - Polícia Técnica\n` +
       `Nº Ocorrência: ${v('idOcorrencia')}\n\n` +
-      `1. DADOS DA OCORRÊNCIA\n` +
-      `Perito: ${v('perito')}\n` +
-      `Data: ${dataBR(v('data'))} (Início: ${v('horaInicio')} - Término: ${v('horaTermino')})\n` +
-      `Hora Chamado: ${v('horaChamado')}\n` +
-      `Local: ${v('tipoLocal')}\n` +
-      `Natureza: ${v('natureza')}\n\n` +
-      `2. GEOLOCALIZAÇÃO\n` +
-      `Coordenadas: ${v('latitude')}, ${v('longitude')}\n` +
-      `Endereço: ${v('endereco') || 'Não informado'}\n\n` +
-      `3. VÍTIMA/ENVOLVIDOS\n` +
-      `${v('vitima')}\n\n` +
-      `4. VESTÍGIOS\n${v('vestigios')}\n\n` +
-      `5. ANÁLISE PRELIMINAR\n${v('analise')}\n\n` +
-      `6. FOTOS ANEXADAS: ${fotosComLegenda.length}\n\n` +
-      `7. CONCLUSÃO\nLaudo encerrado.\n\n` +
-      `Brumado, ${new Date().toLocaleDateString('pt-BR')}\n` +
-      `Assinatura: ${assinatura}`;
-    return texto;
+      `1. DADOS DA OCORRÊNCIA\nPerito: ${v('perito')}\nData: ${dataBR(v('data'))} (Início: ${v('horaInicio')} - Término: ${v('horaTermino')})\nHora Chamado: ${v('horaChamado')}\nLocal: ${v('tipoLocal')}\nNatureza: ${v('natureza')}\n\n` +
+      `2. GEOLOCALIZAÇÃO\nCoordenadas: ${v('latitude')}, ${v('longitude')}\nEndereço: ${v('endereco') || 'Não informado'}\n\n` +
+      `3. VÍTIMA/ENVOLVIDOS\n${v('vitima')}\n\n4. VESTÍGIOS\n${v('vestigios')}\n\n5. ANÁLISE PRELIMINAR\n${v('analise')}\n\n6. FOTOS ANEXADAS: ${fotosComLegenda.length}\n\n7. CONCLUSÃO\nLaudo encerrado.\n\nBrumado, ${new Date().toLocaleDateString('pt-BR')}\nAssinatura: ${assinatura}`;
   }
 
   async function copiarRelatorio() {
     const texto = gerarTextoPlano();
-    if(texto) {
-      await navigator.clipboard.writeText(texto);
-      alert('Texto copiado (versão simplificada)');
-    }
+    if(texto) await navigator.clipboard.writeText(texto), alert('Texto copiado');
   }
-  
   function enviarWhatsApp() {
     const texto = encodeURIComponent(gerarTextoPlano());
     if(texto) window.open(`https://wa.me/?text=${texto}`,'_blank');
   }
-  
   function enviarEmail() {
     const destino = encodeURIComponent(v('emailDestino') || '');
     const assunto = encodeURIComponent(v('assuntoEmail'));
@@ -676,101 +857,29 @@
 
   // ----------------------------- PDF via impressão -----------------------------
   async function gerarPDF() {
-    const htmlLaudo = await gerarRelatorioAsync();
+    const htmlLaudo = await gerarHtmlLaudo();
     if (!htmlLaudo) return;
-    
-    const btnPDF = document.querySelector('button[onclick="gerarPDF()"]');
-    const textoOriginal = btnPDF.innerHTML;
-    btnPDF.innerHTML = '⏳ Preparando PDF...';
-    btnPDF.disabled = true;
-    
+    const btn = document.querySelector('button[onclick="gerarPDF()"]');
+    const original = btn.innerHTML;
+    btn.innerHTML = '⏳ Preparando PDF...'; btn.disabled = true;
     const win = window.open('', '_blank');
-    if (!win) {
-      alert('Permita pop-ups para gerar o PDF.');
-      btnPDF.disabled = false;
-      btnPDF.innerHTML = textoOriginal;
-      return;
-    }
-    
-    win.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Laudo ${v('idOcorrencia')}</title>
-        <style>
-          body { font-family: 'Times New Roman', Times, serif; margin: 20px; background: white; color: black; }
-          .laudo { max-width: 900px; margin: 0 auto; }
-          .laudo table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-          .laudo td, .laudo th { border: 1px solid #000; padding: 8px; vertical-align: top; }
-          .laudo .destaque { background: #f2f2f2; font-weight: bold; width: 30%; }
-          .foto-legenda { text-align: center; margin: 30px 0; page-break-inside: avoid; }
-          .foto-legenda img { max-width: 70%; border: 1px solid #ccc; border-radius: 8px; }
-          .mapa-estatico { text-align: center; margin: 20px 0; }
-          .mapa-estatico img { max-width: 80%; border: 1px solid #aaa; border-radius: 8px; }
-          .legenda-texto { font-size: 12px; font-style: italic; margin-top: 8px; }
-          h1, h2 { color: #7f1d1d; text-align: center; }
-          @media print { body { margin: 0; padding: 10px; } }
-        </style>
-      </head>
-      <body>
-        ${htmlLaudo}
-      </body>
-      </html>
-    `);
+    if (!win) { alert('Permita pop-ups'); btn.disabled=false; btn.innerHTML=original; return; }
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Laudo ${v('idOcorrencia')}</title><style>
+      body { font-family: 'Times New Roman', Times, serif; margin: 20px; }
+      .laudo table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+      .laudo td, .laudo th { border: 1px solid #000; padding: 8px; }
+      .laudo .destaque { background: #f2f2f2; font-weight: bold; }
+      .foto-legenda, .mapa-estatico { text-align: center; margin: 20px 0; }
+      .foto-legenda img, .mapa-estatico img { max-width: 70%; border: 1px solid #aaa; }
+      .legenda-texto { font-size: 12px; font-style: italic; margin-top: 5px; }
+      h1, h2 { color: #7f1d1d; text-align: center; }
+      @media print { body { margin: 0; padding: 10px; } }
+    </style></head><body>${htmlLaudo}</body></html>`);
     win.document.close();
-    
-    const imagens = win.document.querySelectorAll('img');
-    if (imagens.length > 0) {
-      await Promise.all(Array.from(imagens).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
-      }));
-    }
+    const imgs = win.document.querySelectorAll('img');
+    if(imgs.length) await Promise.all(Array.from(imgs).map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=r;img.onerror=r;})));
     win.print();
-    btnPDF.innerHTML = textoOriginal;
-    btnPDF.disabled = false;
-  }
-
-  // ----------------------------- Exportar para Word (editável) -----------------------------
-  async function exportarWord() {
-    const htmlLaudo = await gerarRelatorioAsync();
-    if (!htmlLaudo) return;
-    
-    // Cria um documento HTML completo com formatação compatível com Word
-    const docHtml = `<!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Laudo ${v('idOcorrencia')}</title>
-      <style>
-        body { font-family: 'Times New Roman', Times, serif; margin: 2cm; line-height: 1.3; }
-        h1, h2 { color: #7f1d1d; text-align: center; }
-        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-        td, th { border: 1px solid #000; padding: 6px; vertical-align: top; }
-        .destaque { background: #f2f2f2; font-weight: bold; width: 30%; }
-        .foto-legenda { text-align: center; margin: 20px 0; page-break-inside: avoid; }
-        .foto-legenda img { max-width: 70%; border: 1px solid #aaa; }
-        .mapa-estatico { text-align: center; margin: 20px 0; }
-        .mapa-estatico img { max-width: 80%; border: 1px solid #aaa; }
-        .legenda-texto { font-size: 11px; font-style: italic; margin-top: 5px; }
-      </style>
-    </head>
-    <body>
-      ${htmlLaudo}
-    </body>
-    </html>`;
-    
-    const blob = new Blob([docHtml], { type: 'application/msword' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.download = `Laudo_${v('idOcorrencia').replace(/[\/\\:*?"<>|]/g, '_')}.doc`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    alert('Arquivo Word gerado! Abra com o Microsoft Word ou LibreOffice para editar.');
+    btn.innerHTML = original; btn.disabled = false;
   }
 
   // ----------------------------- GPS -----------------------------
@@ -806,16 +915,11 @@
     };
   }
   async function restaurarEstado(estado) {
-    for(let key in estado) {
-      if(key !== 'fotosComLegenda' && document.getElementById(key)) {
-        document.getElementById(key).value = estado[key];
-      }
-    }
+    for(let key in estado) if(key !== 'fotosComLegenda' && document.getElementById(key)) document.getElementById(key).value = estado[key];
     fotosComLegenda = estado.fotosComLegenda || [];
     atualizarPreviewFotos();
     document.getElementById('fotosInput').value = '';
-    const tipoSelecionado = v('tipoLaudo');
-    document.getElementById('divOutroTipo').style.display = (tipoSelecionado === 'Outro') ? 'block' : 'none';
+    document.getElementById('divOutroTipo').style.display = (v('tipoLaudo') === 'Outro') ? 'block' : 'none';
     atualizarMapa();
     await gerarRelatorioAsync();
     alert('Registro restaurado!');
@@ -844,7 +948,7 @@
 
   // ----------------------------- Limpar formulário -----------------------------
   async function limparFormulario() {
-    if(confirm('Limpar todos os campos e fotos? Esta ação não pode ser desfeita (mas o histórico ainda pode restaurar).')) {
+    if(confirm('Limpar todos os campos e fotos?')) {
       document.getElementById('idOcorrencia').value = '';
       document.getElementById('perito').value = '';
       document.getElementById('data').value = new Date().toISOString().slice(0,10);
@@ -869,11 +973,7 @@
       document.getElementById('divOutroTipo').style.display = 'none';
       fotosComLegenda = [];
       atualizarPreviewFotos();
-      if (mapInstance) {
-        mapInstance.setView([-13.7845, -41.2563], 15);
-        if(markerInstance) mapInstance.removeLayer(markerInstance);
-        markerInstance = L.marker([-13.7845, -41.2563]).addTo(mapInstance).bindPopup('Local padrão').openPopup();
-      }
+      if(mapInstance) mapInstance.setView([-13.7845, -41.2563], 15);
       await gerarRelatorioAsync();
       alert('Formulário limpo.');
     }
@@ -891,15 +991,13 @@
       const campo = document.getElementById(campoId);
       campo.value += (campo.value ? ' ' : '') + texto;
     };
-    recognition.onerror = () => alert('Falha no reconhecimento.');
   }
 
-  // ----------------------------- Controle do campo "Outro" -----------------------------
+  // ----------------------------- Controle "Outro" -----------------------------
   function toggleOutroTipo() {
-    const tipoSelecionado = v('tipoLaudo');
-    const divOutro = document.getElementById('divOutroTipo');
-    divOutro.style.display = (tipoSelecionado === 'Outro') ? 'block' : 'none';
-    if (tipoSelecionado !== 'Outro') document.getElementById('outroTipo').value = '';
+    const div = document.getElementById('divOutroTipo');
+    div.style.display = (v('tipoLaudo') === 'Outro') ? 'block' : 'none';
+    if(v('tipoLaudo') !== 'Outro') document.getElementById('outroTipo').value = '';
     gerarRelatorioAsync();
   }
   document.getElementById('tipoLaudo').addEventListener('change', toggleOutroTipo);
@@ -914,12 +1012,10 @@
   setInterval(autoSaveRascunho, 30000);
   
   window.addEventListener('load', async () => {
-    if(!document.getElementById('data').value) {
-      document.getElementById('data').value = new Date().toISOString().slice(0,10);
-    }
-    const latDefault = parseFloat(v('latitude')) || -13.7845;
-    const lngDefault = parseFloat(v('longitude')) || -41.2563;
-    initMap(latDefault, lngDefault);
+    if(!document.getElementById('data').value) document.getElementById('data').value = new Date().toISOString().slice(0,10);
+    const lat = parseFloat(v('latitude')) || -13.7845;
+    const lng = parseFloat(v('longitude')) || -41.2563;
+    initMap(lat, lng);
     await carregarRascunho();
     await carregarHistoricoUI();
     toggleOutroTipo();
@@ -929,9 +1025,8 @@
   // ----------------------------- Dark Mode -----------------------------
   function toggleDarkMode() {
     document.body.classList.toggle('dark');
-    const isDark = document.body.classList.contains('dark');
-    localStorage.setItem('darkMode', isDark);
-    document.querySelector('.dark-toggle').textContent = isDark ? '☀️' : '🌙';
+    localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+    document.querySelector('.dark-toggle').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
   }
   if(localStorage.getItem('darkMode') === 'true') toggleDarkMode();
 </script>
