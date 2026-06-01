@@ -12,43 +12,69 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- html-to-image -->
   <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
-  <!-- Carregamento seguro da biblioteca docx -->
+  <!-- Carregamento robusto da biblioteca docx -->
   <script>
-    function carregarDocx(callback) {
+    function carregarDocx(callback, tentativas = 0) {
       if (typeof docx !== 'undefined') {
+        console.log("docx já carregado");
         callback(true);
         return;
       }
       const cdnUrls = [
         'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js',
-        'https://unpkg.com/docx@8.5.0/build/index.min.js'
+        'https://unpkg.com/docx@8.5.0/build/index.min.js',
+        'https://cdn.skypack.dev/docx@8.5.0'
       ];
-      let tentativa = 0;
+      let tentativaAtual = tentativas;
       function tentarCarregar() {
-        if (tentativa >= cdnUrls.length) {
+        if (tentativaAtual >= cdnUrls.length) {
           callback(false);
           return;
         }
         const script = document.createElement('script');
-        script.src = cdnUrls[tentativa];
+        script.src = cdnUrls[tentativaAtual];
         script.onload = () => {
-          if (typeof docx !== 'undefined') callback(true);
-          else tentarCarregar();
+          if (typeof docx !== 'undefined') {
+            callback(true);
+          } else {
+            tentativaAtual++;
+            tentarCarregar();
+          }
         };
         script.onerror = () => {
-          tentativa++;
+          tentativaAtual++;
           tentarCarregar();
         };
         document.head.appendChild(script);
       }
       tentarCarregar();
     }
+    
     window.docxReady = new Promise((resolve) => {
-      carregarDocx(resolve);
+      let resolved = false;
+      carregarDocx((sucesso) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(sucesso);
+        }
+      });
+      setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          console.warn("Timeout no carregamento do docx");
+          resolve(false);
+        }
+      }, 20000);
     });
+    
+    window.tentarRecarregarDocx = function() {
+      return new Promise((resolve) => {
+        delete window.docx;
+        carregarDocx(resolve);
+      });
+    };
   </script>
   <style>
-    /* (estilos idênticos aos que você já tem - mantenha o mesmo CSS) */
     * { box-sizing: border-box; transition: background 0.2s, color 0.2s; }
     :root {
       --bg: #f3f4f6;
@@ -671,7 +697,7 @@
     win.document.close();
   }
 
-  // Exportar para Word .docx com carregamento seguro
+  // Exportar para Word .docx com carregamento seguro e retry
   async function exportarDocx() {
     if (!validarCamposObrigatorios()) return;
     const btn = document.querySelector('button[onclick="exportarDocx()"]');
@@ -679,16 +705,24 @@
     btn.innerHTML = '⏳ Carregando biblioteca...';
     btn.disabled = true;
     
-    // Aguarda a biblioteca docx
     let docxLib = null;
     try {
-      await Promise.race([
-        window.docxReady,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
-      ]);
-      docxLib = docx;
+      const sucesso = await window.docxReady;
+      if (!sucesso) {
+        const tentarNovamente = confirm('Falha ao carregar a biblioteca docx. Deseja tentar novamente?');
+        if (tentarNovamente) {
+          btn.innerHTML = '⏳ Recarregando biblioteca...';
+          const novoSucesso = await window.tentarRecarregarDocx();
+          if (!novoSucesso) throw new Error('Não foi possível carregar a biblioteca mesmo após tentativa manual.');
+          docxLib = docx;
+        } else {
+          throw new Error('Usuário cancelou o carregamento.');
+        }
+      } else {
+        docxLib = docx;
+      }
     } catch (err) {
-      alert('Falha ao carregar a biblioteca docx. Verifique sua internet e recarregue a página.');
+      alert('Erro ao carregar biblioteca docx: ' + err.message + '\nVerifique sua conexão com a internet e recarregue a página.');
       btn.innerHTML = originalText;
       btn.disabled = false;
       return;
