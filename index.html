@@ -12,7 +12,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- html-to-image para capturar o mapa -->
   <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
-  <!-- Biblioteca docx para gerar Word verdadeiro -->
+  <!-- Biblioteca docx para gerar Word verdadeiro (carregamento seguro) -->
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js"></script>
   <style>
     * { box-sizing: border-box; transition: background 0.2s, color 0.2s; }
@@ -294,6 +294,13 @@
     <textarea id="laudo">Guia 16873/2026. Enviada por e-mail.</textarea>
   </div>
 
+  <!-- NOVO CAMPO: Conclusão editável -->
+  <div class="card">
+    <h2>📝 Conclusão / Encerramento</h2>
+    <label>Texto da conclusão <button type="button" class="btn-outline" style="padding:2px 8px;" onclick="dictar('conclusao')">🎤 Ditar</button></label>
+    <textarea id="conclusao" rows="3">Diante do exposto, o presente laudo pericial é encerrado e vai assinado digitalmente.</textarea>
+  </div>
+
   <div class="card">
     <h2>📸 Fotos da cena (com legenda)</h2>
     <div class="btns">
@@ -382,7 +389,7 @@
   let db = null;
   function abrirDB() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 2);
+      const request = indexedDB.open(DB_NAME, 3); // increment version
       request.onupgradeneeded = (e) => {
         const db = e.target.result;
         if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -527,7 +534,7 @@
     return 'Qualificação da vítima / envolvido(s)';
   }
 
-  // ----------------------------- Geração do Laudo em HTML (para preview e PDF) -----------------------------
+  // ----------------------------- Geração do Laudo em HTML (com conclusão editável) -----------------------------
   async function gerarHtmlLaudo() {
     if(!validarCamposObrigatorios()) return null;
     
@@ -555,6 +562,7 @@
     const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
     const titulo = obterTituloLaudo();
     const labelVitima = obterLabelVitima();
+    const textoConclusao = v('conclusao') || 'Diante do exposto, o presente laudo pericial é encerrado e vai assinado digitalmente.';
     
     let html = `<div class="laudo">
       <h1>${titulo}</h1>
@@ -614,7 +622,7 @@
     }
     
     html += `<h2>7. CONCLUSÃO / ENCERRAMENTO</h2>
-      <p>Diante do exposto, o presente laudo pericial é encerrado e vai assinado digitalmente.</p>
+      <p>${textoConclusao.replace(/\n/g, '<br>')}</p>
       
       <p style="margin-top: 40px;">Brumado, ${new Date().toLocaleDateString('pt-BR')}.</p>
       <p>_________________________________________<br>
@@ -635,7 +643,7 @@
     return '';
   }
 
-  // Abrir laudo em nova aba (perfeito para celular)
+  // Abrir laudo em nova aba
   async function abrirLaudoNovaAba() {
     const html = await gerarHtmlLaudo();
     if (!html) return;
@@ -669,6 +677,12 @@
   async function exportarDocx() {
     if (!validarCamposObrigatorios()) return;
     
+    // Verifica se a biblioteca docx está disponível
+    if (typeof docx === 'undefined') {
+      alert('Biblioteca docx não carregada. Tente recarregar a página.');
+      return;
+    }
+    
     const btn = document.querySelector('button[onclick="exportarDocx()"]');
     const originalText = btn.innerHTML;
     btn.innerHTML = '⏳ Gerando .docx...';
@@ -695,29 +709,33 @@
       }
       
       // 2. Preparar os dados para o docx
-      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, BorderStyle, AlignmentType, ImageRun, HeadingLevel } = docx;
+      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, ImageRun, HeadingLevel } = docx;
       
-      // Helper para converter base64 para Uint8Array (imagem)
+      // Função para converter base64 para Uint8Array
       function base64ToUint8Array(base64) {
-        const binaryString = atob(base64.split(',')[1]);
+        const parts = base64.split(',');
+        const base64Data = parts.length > 1 ? parts[1] : parts[0];
+        const binaryString = atob(base64Data);
         const len = binaryString.length;
         const bytes = new Uint8Array(len);
         for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
         return bytes;
       }
       
-      // Função para criar imagem a partir de base64
-      async function createImageRun(base64, maxWidth = 500) {
+      // Função para criar um parágrafo com imagem
+      async function createImageParagraph(base64, maxWidth = 500) {
         const imageBuffer = base64ToUint8Array(base64);
-        const imageRun = await ImageRun.fromImageBuffer(imageBuffer);
-        // redimensionar (opcional, mas no docx é feito via dimension)
-        imageRun.options = { ...imageRun.options, transformation: { width: maxWidth, height: 'auto' } };
+        const imageRun = new ImageRun({
+          data: imageBuffer,
+          transformation: { width: maxWidth, height: 'auto' }
+        });
         return new Paragraph({ children: [imageRun], alignment: AlignmentType.CENTER });
       }
       
       // Título principal
       const titulo = obterTituloLaudo();
       const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
+      const textoConclusao = v('conclusao') || 'Diante do exposto, o presente laudo pericial é encerrado e vai assinado digitalmente.';
       
       // Seções do documento
       const children = [];
@@ -755,7 +773,7 @@
       // Mapa estático
       if (mapaImgBase64) {
         try {
-          const imgParagraph = await createImageRun(mapaImgBase64, 500);
+          const imgParagraph = await createImageParagraph(mapaImgBase64, 500);
           children.push(imgParagraph);
           children.push(new Paragraph({ text: 'Figura - Mapa do local da perícia (coordenadas informadas).', alignment: AlignmentType.CENTER, italics: true, spacing: { after: 200 } }));
         } catch(e) { console.warn('Erro ao inserir mapa', e); }
@@ -791,7 +809,7 @@
         for (let i = 0; i < fotosComLegenda.length; i++) {
           const foto = fotosComLegenda[i];
           try {
-            const imgPara = await createImageRun(foto.base64, 450);
+            const imgPara = await createImageParagraph(foto.base64, 450);
             children.push(imgPara);
             const legenda = foto.legenda ? foto.legenda : 'Sem legenda';
             children.push(new Paragraph({ text: `Figura ${i+1}: ${legenda}`, alignment: AlignmentType.CENTER, italics: true, spacing: { after: 200 } }));
@@ -801,7 +819,7 @@
       
       // 7. Conclusão
       children.push(new Paragraph({ text: '7. CONCLUSÃO / ENCERRAMENTO', heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
-      children.push(new Paragraph('Diante do exposto, o presente laudo pericial é encerrado e vai assinado digitalmente.'));
+      children.push(new Paragraph(textoConclusao));
       children.push(new Paragraph({ text: `Brumado, ${new Date().toLocaleDateString('pt-BR')}.`, spacing: { before: 300 } }));
       children.push(new Paragraph('_________________________________________'));
       children.push(new Paragraph({ text: assinatura, bold: true }));
@@ -832,12 +850,13 @@
   function gerarTextoPlano() {
     if(!validarCamposObrigatorios()) return '';
     const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
+    const textoConclusao = v('conclusao') || 'Diante do exposto, o presente laudo pericial é encerrado e vai assinado digitalmente.';
     return `${obterTituloLaudo()}\n\n` +
       `CRPT Brumado - Polícia Técnica\n` +
       `Nº Ocorrência: ${v('idOcorrencia')}\n\n` +
       `1. DADOS DA OCORRÊNCIA\nPerito: ${v('perito')}\nData: ${dataBR(v('data'))} (Início: ${v('horaInicio')} - Término: ${v('horaTermino')})\nHora Chamado: ${v('horaChamado')}\nLocal: ${v('tipoLocal')}\nNatureza: ${v('natureza')}\n\n` +
       `2. GEOLOCALIZAÇÃO\nCoordenadas: ${v('latitude')}, ${v('longitude')}\nEndereço: ${v('endereco') || 'Não informado'}\n\n` +
-      `3. VÍTIMA/ENVOLVIDOS\n${v('vitima')}\n\n4. VESTÍGIOS\n${v('vestigios')}\n\n5. ANÁLISE PRELIMINAR\n${v('analise')}\n\n6. FOTOS ANEXADAS: ${fotosComLegenda.length}\n\n7. CONCLUSÃO\nLaudo encerrado.\n\nBrumado, ${new Date().toLocaleDateString('pt-BR')}\nAssinatura: ${assinatura}`;
+      `3. VÍTIMA/ENVOLVIDOS\n${v('vitima')}\n\n4. VESTÍGIOS\n${v('vestigios')}\n\n5. ANÁLISE PRELIMINAR\n${v('analise')}\n\n6. FOTOS ANEXADAS: ${fotosComLegenda.length}\n\n7. CONCLUSÃO\n${textoConclusao}\n\nBrumado, ${new Date().toLocaleDateString('pt-BR')}\nAssinatura: ${assinatura}`;
   }
 
   async function copiarRelatorio() {
@@ -909,7 +928,7 @@
       latitude: v('latitude'), longitude: v('longitude'), endereco: v('endereco'), vestigios: v('vestigios'),
       analise: v('analise'), vitima: v('vitima'), organizacao: v('organizacao'), laudo: v('laudo'),
       emailDestino: v('emailDestino'), assuntoEmail: v('assuntoEmail'), assinaturaNome: v('assinaturaNome'),
-      tipoLaudo: v('tipoLaudo'), outroTipo: v('outroTipo'),
+      tipoLaudo: v('tipoLaudo'), outroTipo: v('outroTipo'), conclusao: v('conclusao'),
       fotosComLegenda: fotosComLegenda,
       timestamp: new Date().toLocaleString('pt-BR')
     };
@@ -970,6 +989,7 @@
       document.getElementById('assinaturaNome').value = '';
       document.getElementById('tipoLaudo').value = 'Morte violenta';
       document.getElementById('outroTipo').value = '';
+      document.getElementById('conclusao').value = 'Diante do exposto, o presente laudo pericial é encerrado e vai assinado digitalmente.';
       document.getElementById('divOutroTipo').style.display = 'none';
       fotosComLegenda = [];
       atualizarPreviewFotos();
