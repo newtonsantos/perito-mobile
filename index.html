@@ -154,14 +154,14 @@
       border: 1px solid var(--border);
       z-index: 1;
     }
-    /* Estilos para o relatório gerado (laudo) */
+    /* Estilos para o relatório gerado (laudo) - Tela */
     .laudo {
       font-family: 'Times New Roman', Times, serif;
       line-height: 1.4;
       color: #000000;
     }
     .laudo h1, .laudo h2 {
-      color: #000000; /* Corrigido para preto puro */
+      color: #000000;
       text-align: center;
     }
     .laudo table {
@@ -183,30 +183,109 @@
       text-align: center;
       margin: 20px 0;
       page-break-inside: avoid;
+      break-inside: avoid;
     }
     .laudo .foto-legenda img {
       max-width: 80%;
+      max-height: 350px;
       border: 1px solid #ccc;
       border-radius: 8px;
+      object-fit: contain;
     }
     .laudo .legenda-texto {
       font-size: 12px;
       font-style: italic;
-      margin-top: 5px;
+      margin-top: 8px;
       color: #333;
     }
+    .laudo .mapa-estatico {
+      text-align: center;
+      margin: 25px 0;
+      page-break-inside: avoid;
+    }
     .laudo .mapa-estatico img {
-      width: 90%;
-      max-width: 600px;
-      height: 250px;
+      width: 70%;
+      max-width: 500px;
+      max-height: 250px;
       object-fit: cover;
       border: 1px solid #aaa;
       border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
+
+    /* ========== ESTILOS ESPECÍFICOS PARA IMPRESSÃO / PDF ========== */
     @media print {
+      /* Remove elementos da interface */
       .btns, .dark-toggle, .card:not(.output), .header, #mapid { display: none; }
-      .output { box-shadow: none; padding: 0; margin: 0; }
+      .output {
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+        background: white;
+      }
+      body {
+        background: white;
+        padding: 0;
+        margin: 0;
+      }
+      /* Configurações oficiais da página A4 */
+      @page {
+        size: A4;
+        margin: 2.5cm 2cm 2.5cm 2cm; /* superior/inferior 2,5cm; laterais 2cm */
+      }
+      /* Força cores de fundo e bordas na impressão */
+      .laudo td, .laudo th {
+        border: 1px solid #000 !important;
+      }
+      .laudo .destaque {
+        background-color: #f2f2f2 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      /* Controle de quebra de página para fotos */
+      .laudo .foto-legenda {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        margin: 15px 0;
+      }
+      /* Fotos no PDF: menores e centralizadas */
+      .laudo .foto-legenda img {
+        max-width: 60% !important;
+        max-height: 300px !important;
+        width: auto !important;
+        height: auto !important;
+        border: 1px solid #000;
+      }
+      /* Mapa no PDF: tamanho reduzido e com quebra de página após ele */
+      .laudo .mapa-estatico {
+        page-break-after: always; /* força nova página após o mapa */
+        page-break-inside: avoid;
+      }
+      .laudo .mapa-estatico img {
+        width: 60% !important;
+        max-width: 400px !important;
+        height: auto !important;
+        max-height: 200px;
+      }
+      /* Títulos e tabelas mais compactos */
+      .laudo h1 {
+        font-size: 18pt;
+        margin-top: 0;
+      }
+      .laudo h2 {
+        font-size: 14pt;
+        margin-top: 20px;
+      }
+      .laudo table {
+        margin: 10px 0;
+      }
+      /* Evita quebra dentro de uma linha de tabela */
+      .laudo tr {
+        page-break-inside: avoid;
+      }
+      /* Rodapé e assinatura */
+      .laudo p:last-of-type {
+        margin-bottom: 0;
+      }
     }
   </style>
 </head>
@@ -596,7 +675,7 @@
     gerarRelatorioAsync();
   });
 
-  // ----------------------------- Geração do Laudo com imagem do mapa (ASSÍNCRONA) -----------------------------
+  // ----------------------------- Geração do Laudo com imagem do mapa -----------------------------
   async function gerarRelatorioAsync() {
     if(!validarCamposObrigatorios()) return;
     
@@ -749,7 +828,7 @@
     window.location.href = `mailto:${destino}?subject=${assunto}&body=${corpo}`;
   }
 
-  // ----------------------------- PDF via impressão -----------------------------
+  // ----------------------------- PDF via impressão (com estilos corrigidos) -----------------------------
   async function gerarPDF() {
     const htmlLaudo = await gerarRelatorioAsync();
     if (!htmlLaudo) return;
@@ -774,13 +853,11 @@
         <meta charset="UTF-8">
         <title>Laudo ${v('idOcorrencia')}</title>
         <style>
-          /* 1. CONFIGURAÇÃO DA PÁGINA A4 */
+          /* 1. CONFIGURAÇÃO DA PÁGINA A4 (OFICIAL) */
           @page {
             size: A4;
-            margin: 2cm 1.5cm 2cm 1.5cm; /* Margens: Topo, Direita, Baixo, Esquerda */
+            margin: 2.5cm 2cm 2.5cm 2cm;
           }
-
-          /* 2. TIPOGRAFIA E ESPAÇAMENTOS GERAIS */
           body { 
             font-family: 'Times New Roman', Times, serif; 
             font-size: 12pt;
@@ -790,12 +867,9 @@
             margin: 0; 
             padding: 0;
           }
-          
           .laudo { max-width: 100%; margin: 0 auto; }
           p { margin-bottom: 12px; text-align: justify; }
-
-          /* 3. TÍTULOS (H1 e H2) */
-          h1 { color: #000000; text-align: center; font-size: 16pt; text-transform: uppercase; margin-bottom: 25px; }
+          h1 { color: #000000; text-align: center; font-size: 18pt; text-transform: uppercase; margin-top: 0; margin-bottom: 25px; }
           h2 { 
             color: #000000; 
             font-size: 14pt; 
@@ -804,13 +878,9 @@
             margin-top: 35px; 
             margin-bottom: 15px; 
           }
-
-          /* 4. TABELAS (Sem cortes nas linhas) */
           table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-          tr { page-break-inside: avoid; } /* Impede que uma linha seja dividida em duas páginas */
-          td, th { border: 1px solid #000000; padding: 10px; vertical-align: top; }
-          
-          /* Força a cor de fundo cinza na tabela mesmo na impressão */
+          tr { page-break-inside: avoid; }
+          td, th { border: 1px solid #000000; padding: 8px; vertical-align: top; }
           .destaque { 
             background-color: #f2f2f2 !important; 
             font-weight: bold; 
@@ -818,33 +888,34 @@
             -webkit-print-color-adjust: exact; 
             print-color-adjust: exact; 
           }
-
-          /* 5. FOTOS E MAPA */
-          .foto-legenda, .mapa-estatico { text-align: center; margin: 30px 0; }
-          .foto-legenda img { max-width: 85%; max-height: 450px; border: 1px solid #aaa; border-radius: 4px; object-fit: contain; }
+          /* FOTOS E MAPA NO PDF (tamanhos reduzidos e quebra após mapa) */
+          .foto-legenda, .mapa-estatico { 
+            text-align: center; 
+            margin: 20px 0; 
+            page-break-inside: avoid; 
+            break-inside: avoid;
+          }
+          .mapa-estatico {
+            page-break-after: always; /* força nova página após o mapa */
+          }
+          .foto-legenda img { 
+            max-width: 60% !important; 
+            max-height: 300px !important; 
+            width: auto !important;
+            height: auto !important;
+            border: 1px solid #000000; 
+            border-radius: 4px; 
+            object-fit: contain;
+          }
           .mapa-estatico img { 
-            width: 85%; 
-            height: 250px; 
-            object-fit: cover; 
+            max-width: 60% !important; 
+            max-height: 220px !important;
+            width: auto !important;
             border: 1px solid #000000; 
             border-radius: 4px; 
           }
-          .legenda-texto { font-size: 11pt; font-style: italic; margin-top: 8px; color: #333333; }
-
-          /* 6. CONTROLADORES DE QUEBRA DE PÁGINA */
-          .quebra-pagina {
-            page-break-before: always; /* Começa obrigatoriamente em uma nova página */
-          }
-          
-          .manter-junto {
-            page-break-inside: avoid; /* Impede que o bloco seja fatiado ao meio na transição das folhas */
-          }
-
-          /* 7. ASSINATURA */
-          .assinatura-box {
-            margin-top: 50px;
-            text-align: center;
-          }
+          .legenda-texto { font-size: 11pt; font-style: italic; margin-top: 8px; color: #000000; }
+          .assinatura-box { margin-top: 50px; text-align: center; }
         </style>
       </head>
       <body>
@@ -854,7 +925,7 @@
     `);
     win.document.close();
     
-    // Aguarda o carregamento das imagens antes de chamar a impressão
+    // Aguarda o carregamento das imagens
     const imagens = win.document.querySelectorAll('img');
     if (imagens.length > 0) {
       await Promise.all(Array.from(imagens).map(img => {
@@ -862,8 +933,7 @@
         return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
       }));
     }
-
-    // Um pequeno atraso (500ms) garante que o navegador renderizou o CSS da página antes de "bater a foto" do PDF
+    
     setTimeout(() => {
       win.print();
       btnPDF.innerHTML = textoOriginal;
@@ -871,12 +941,11 @@
     }, 500);
   }
 
-  // ----------------------------- Exportar para Word (editável) - CORRIGIDO PARA MOBILE -----------------------------
+  // ----------------------------- Exportar para Word (editável) -----------------------------
   async function exportarWord() {
     const htmlLaudo = await gerarRelatorioAsync();
     if (!htmlLaudo) return;
     
-    // Cria um documento HTML completo com namespaces XML do Office para mobile entender
     const docHtml = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office"
           xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -886,14 +955,14 @@
       <title>Laudo ${v('idOcorrencia')}</title>
       <style>
         body { font-family: 'Times New Roman', Times, serif; margin: 2cm; line-height: 1.3; color: black; background: white; }
-        h1, h2 { color: #000000; text-align: center; } /* Corrigido para preto puro */
+        h1, h2 { color: #000000; text-align: center; }
         table { width: 100%; border-collapse: collapse; margin: 15px 0; }
         td, th { border: 1px solid #000; padding: 6px; vertical-align: top; }
         .destaque { background: #f2f2f2; font-weight: bold; width: 30%; }
         .foto-legenda { text-align: center; margin: 20px 0; page-break-inside: avoid; }
         .foto-legenda img { max-width: 70%; border: 1px solid #aaa; }
         .mapa-estatico { text-align: center; margin: 20px 0; }
-        .mapa-estatico img { max-width: 80%; border: 1px solid #aaa; }
+        .mapa-estatico img { max-width: 70%; border: 1px solid #aaa; }
         .legenda-texto { font-size: 11px; font-style: italic; margin-top: 5px; color: #000000; }
       </style>
     </head>
@@ -902,7 +971,6 @@
     </body>
     </html>`;
     
-    // O \ufeff (Byte Order Mark) garante que o celular leia como UTF-8
     const blob = new Blob(['\ufeff' + docHtml], { type: 'application/msword;charset=utf-8' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -960,7 +1028,6 @@
     const tipoSelecionado = v('tipoLaudo');
     document.getElementById('divOutroTipo').style.display = (tipoSelecionado === 'Outro') ? 'block' : 'none';
     
-    // Atualiza campo CRPT
     const crptSelecionada = v('crptSelect');
     document.getElementById('divOutraCrpt').style.display = (crptSelecionada === 'Outra') ? 'block' : 'none';
     atualizarTextoCrpt();
