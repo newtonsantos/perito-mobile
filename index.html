@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-  <title>Laudo Pericial - CRPT Brumado</title>
+  <title>Laudo Pericial - Polícia Técnica</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#7f1d1d">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -160,7 +160,7 @@
       line-height: 1.4;
     }
     .laudo h1, .laudo h2 {
-      color: #7f1d1d;
+      color: #000000; /* Corrigido para preto puro */
       text-align: center;
     }
     .laudo table {
@@ -213,7 +213,7 @@
 <body>
 <div class="app">
   <div class="header">
-    <h1>⚖️ SISTEMA DE LAUDOS PERICIAIS<br><small>CRPT Brumado - Polícia Técnica</small></h1>
+    <h1>⚖️ SISTEMA DE LAUDOS PERICIAIS<br><small id="headerCrptText">CRPT Brumado - Polícia Técnica</small></h1>
   </div>
 
   <div class="card">
@@ -239,6 +239,25 @@
   <div class="card">
     <h2>📄 Dados da ocorrência</h2>
     <div class="grid two">
+      <div>
+        <label>Unidade (CRPT) *</label>
+        <select id="crptSelect">
+          <option value="Brumado">Brumado</option>
+          <option value="Feira de Santana">Feira de Santana</option>
+          <option value="Guanambi">Guanambi</option>
+          <option value="Itapetinga">Itapetinga</option>
+          <option value="Jequié">Jequié</option>
+          <option value="Salvador">Salvador</option>
+          <option value="Vitória da Conquista">Vitória da Conquista</option>
+          <option value="Outra">Outra (especificar)</option>
+        </select>
+      </div>
+      <div id="divOutraCrpt" style="display: none;">
+        <label>Especificar CRPT *</label>
+        <input id="outraCrpt" type="text" placeholder="Ex: Itabuna">
+      </div>
+    </div>
+    <div class="grid two" style="margin-top: 8px;">
       <div><label>ID Ocorrência *</label><input id="idOcorrencia" value="BO 85485/2026"></div>
       <div><label>Perito Responsável *</label><input id="perito" value="CARDOSO, K."></div>
     </div>
@@ -321,7 +340,7 @@
       <button class="btn-green" onclick="gerarRelatorioAsync()">📝 Gerar Laudo (com mapa)</button>
       <button class="btn-primary" onclick="copiarRelatorio()">📋 Copiar texto</button>
       <button class="btn-blue" onclick="gerarPDF()">📄 Gerar PDF (com fotos/mapa)</button>
-      <button class="btn-orange" onclick="exportarWord()">📝 Exportar para Word (editável)</button>
+      <button class="btn-orange" onclick="exportarWord()">📝 Exportar para Word (apenas PC)</button>
       <button class="btn-dark" onclick="enviarWhatsApp()">📲 WhatsApp</button>
       <button class="btn-muted" onclick="enviarEmail()">✉️ Email</button>
       <button class="btn-green" onclick="salvarHistorico()">💾 Salvar no histórico</button>
@@ -526,6 +545,32 @@
     return 'Qualificação da vítima / envolvido(s)';
   }
 
+  // ----------------------------- Controle da CRPT -----------------------------
+  function obterCrptAtual() {
+    const selecionada = v('crptSelect');
+    return selecionada === 'Outra' ? (v('outraCrpt') || 'Não Informada') : selecionada;
+  }
+
+  function atualizarTextoCrpt() {
+    const crpt = obterCrptAtual();
+    document.getElementById('headerCrptText').textContent = `CRPT ${crpt} - Polícia Técnica`;
+  }
+
+  function toggleOutraCrpt() {
+    const crptSelecionada = v('crptSelect');
+    const divOutra = document.getElementById('divOutraCrpt');
+    divOutra.style.display = (crptSelecionada === 'Outra') ? 'block' : 'none';
+    if (crptSelecionada !== 'Outra') document.getElementById('outraCrpt').value = '';
+    atualizarTextoCrpt();
+    gerarRelatorioAsync();
+  }
+  
+  document.getElementById('crptSelect').addEventListener('change', toggleOutraCrpt);
+  document.getElementById('outraCrpt').addEventListener('input', () => {
+    atualizarTextoCrpt();
+    gerarRelatorioAsync();
+  });
+
   // ----------------------------- Geração do Laudo com imagem do mapa (ASSÍNCRONA) -----------------------------
   async function gerarRelatorioAsync() {
     if(!validarCamposObrigatorios()) return;
@@ -558,10 +603,11 @@
     const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
     const titulo = obterTituloLaudo();
     const labelVitima = obterLabelVitima();
+    const crptAtual = obterCrptAtual();
     
     let html = `<div class="laudo">
       <h1>${titulo}</h1>
-      <p style="text-align:center"><strong>CRPT Brumado - Polícia Técnica</strong></p>
+      <p style="text-align:center"><strong>CRPT ${crptAtual} - Polícia Técnica</strong></p>
       <p style="text-align:center">Nº Ocorrência: ${v('idOcorrencia')}</p>
       
       <h2>1. DADOS DA OCORRÊNCIA</h2>
@@ -619,10 +665,10 @@
     html += `<h2>7. CONCLUSÃO / ENCERRAMENTO</h2>
       <p>${v('conclusao').replace(/\n/g, '<br>')}</p>
       
-      <p style="margin-top: 40px;">Brumado, ${new Date().toLocaleDateString('pt-BR')}.</p>
+      <p style="margin-top: 40px;">Data da geração: ${new Date().toLocaleDateString('pt-BR')}.</p>
       <p>_________________________________________<br>
       <strong>${assinatura}</strong><br>
-      Perito Criminal - CRPT Brumado</p>
+      Perito Criminal - CRPT ${crptAtual}</p>
       <p style="font-size:12px; color:#555;">Documento gerado em ${new Date().toLocaleString('pt-BR')}</p>
     </div>`;
     
@@ -634,8 +680,9 @@
   function gerarTextoPlano() {
     if(!validarCamposObrigatorios()) return '';
     const assinatura = v('assinaturaNome') ? `${v('assinaturaNome')} - ${new Date().toLocaleString('pt-BR')}` : 'Sem assinatura digital';
+    const crptAtual = obterCrptAtual();
     let texto = `${obterTituloLaudo()}\n\n` +
-      `CRPT Brumado - Polícia Técnica\n` +
+      `CRPT ${crptAtual} - Polícia Técnica\n` +
       `Nº Ocorrência: ${v('idOcorrencia')}\n\n` +
       `1. DADOS DA OCORRÊNCIA\n` +
       `Perito: ${v('perito')}\n` +
@@ -652,7 +699,7 @@
       `5. ANÁLISE PRELIMINAR\n${v('analise')}\n\n` +
       `6. FOTOS ANEXADAS: ${fotosComLegenda.length}\n\n` +
       `7. CONCLUSÃO\n${v('conclusao')}\n\n` +
-      `Brumado, ${new Date().toLocaleDateString('pt-BR')}\n` +
+      `Data: ${new Date().toLocaleDateString('pt-BR')}\n` +
       `Assinatura: ${assinatura}`;
     return texto;
   }
@@ -712,7 +759,7 @@
           .mapa-estatico { text-align: center; margin: 20px 0; }
           .mapa-estatico img { max-width: 80%; border: 1px solid #aaa; border-radius: 8px; }
           .legenda-texto { font-size: 12px; font-style: italic; margin-top: 8px; }
-          h1, h2 { color: #7f1d1d; text-align: center; }
+          h1, h2 { color: #000000; text-align: center; } /* Corrigido para preto puro */
           @media print { body { margin: 0; padding: 10px; } }
         </style>
       </head>
@@ -750,7 +797,7 @@
       <title>Laudo ${v('idOcorrencia')}</title>
       <style>
         body { font-family: 'Times New Roman', Times, serif; margin: 2cm; line-height: 1.3; color: black; background: white; }
-        h1, h2 { color: #7f1d1d; text-align: center; }
+        h1, h2 { color: #000000; text-align: center; } /* Corrigido para preto puro */
         table { width: 100%; border-collapse: collapse; margin: 15px 0; }
         td, th { border: 1px solid #000; padding: 6px; vertical-align: top; }
         .destaque { background: #f2f2f2; font-weight: bold; width: 30%; }
@@ -776,7 +823,7 @@
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    alert('Arquivo Word gerado! Teste abrir no celular agora.');
+    alert('Arquivo Word gerado! Este recurso é otimizado para abrir no Computador.');
   }
 
   // ----------------------------- GPS -----------------------------
@@ -807,6 +854,7 @@
       analise: v('analise'), vitima: v('vitima'), organizacao: v('organizacao'), laudo: v('laudo'), conclusao: v('conclusao'),
       emailDestino: v('emailDestino'), assuntoEmail: v('assuntoEmail'), assinaturaNome: v('assinaturaNome'),
       tipoLaudo: v('tipoLaudo'), outroTipo: v('outroTipo'),
+      crptSelect: v('crptSelect'), outraCrpt: v('outraCrpt'),
       fotosComLegenda: fotosComLegenda,
       timestamp: new Date().toLocaleString('pt-BR')
     };
@@ -822,6 +870,12 @@
     document.getElementById('fotosInput').value = '';
     const tipoSelecionado = v('tipoLaudo');
     document.getElementById('divOutroTipo').style.display = (tipoSelecionado === 'Outro') ? 'block' : 'none';
+    
+    // Atualiza campo CRPT
+    const crptSelecionada = v('crptSelect');
+    document.getElementById('divOutraCrpt').style.display = (crptSelecionada === 'Outra') ? 'block' : 'none';
+    atualizarTextoCrpt();
+    
     atualizarMapa();
     await gerarRelatorioAsync();
     alert('Registro restaurado!');
@@ -874,6 +928,12 @@
       document.getElementById('tipoLaudo').value = 'Morte violenta';
       document.getElementById('outroTipo').value = '';
       document.getElementById('divOutroTipo').style.display = 'none';
+      
+      document.getElementById('crptSelect').value = 'Brumado';
+      document.getElementById('outraCrpt').value = '';
+      document.getElementById('divOutraCrpt').style.display = 'none';
+      atualizarTextoCrpt();
+      
       fotosComLegenda = [];
       atualizarPreviewFotos();
       if (mapInstance) {
@@ -927,6 +987,7 @@
     const latDefault = parseFloat(v('latitude')) || -13.7845;
     const lngDefault = parseFloat(v('longitude')) || -41.2563;
     initMap(latDefault, lngDefault);
+    toggleOutraCrpt();
     await carregarRascunho();
     await carregarHistoricoUI();
     toggleOutroTipo();
