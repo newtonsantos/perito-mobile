@@ -775,18 +775,71 @@
         <meta charset="UTF-8">
         <title>Laudo ${v('idOcorrencia')}</title>
         <style>
-          body { font-family: 'Times New Roman', Times, serif; margin: 20px; background: white; color: black; }
-          .laudo { max-width: 900px; margin: 0 auto; color: #000000; }
-          .laudo table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-          .laudo td, .laudo th { border: 1px solid #000; padding: 8px; vertical-align: top; color: #000000; }
-          .laudo .destaque { background: #f2f2f2; font-weight: bold; width: 30%; color: #000000; }
-          .foto-legenda { text-align: center; margin: 30px 0; page-break-inside: avoid; }
-          .foto-legenda img { max-width: 70%; border: 1px solid #ccc; border-radius: 8px; }
-          .mapa-estatico { text-align: center; margin: 20px 0; }
-          .mapa-estatico img { max-width: 80%; border: 1px solid #aaa; border-radius: 8px; }
-          .legenda-texto { font-size: 12px; font-style: italic; margin-top: 8px; color: #000000; }
-          h1, h2 { color: #000000; text-align: center; } /* Corrigido para preto puro */
-          @media print { body { margin: 0; padding: 10px; } }
+          /* 1. CONFIGURAÇÃO DA PÁGINA A4 */
+          @page {
+            size: A4;
+            margin: 2cm 1.5cm 2cm 1.5cm; /* Margens: Topo, Direita, Baixo, Esquerda */
+          }
+
+          /* 2. TIPOGRAFIA E ESPAÇAMENTOS GERAIS */
+          body { 
+            font-family: 'Times New Roman', Times, serif; 
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #000000;
+            background: white; 
+            margin: 0; 
+            padding: 0;
+          }
+          
+          .laudo { max-width: 100%; margin: 0 auto; }
+          p { margin-bottom: 12px; text-align: justify; }
+
+          /* 3. TÍTULOS (H1 e H2) */
+          h1 { color: #000000; text-align: center; font-size: 16pt; text-transform: uppercase; margin-bottom: 25px; }
+          h2 { 
+            color: #000000; 
+            font-size: 14pt; 
+            border-bottom: 1px solid #000000; 
+            padding-bottom: 5px; 
+            margin-top: 35px; 
+            margin-bottom: 15px; 
+          }
+
+          /* 4. TABELAS (Sem cortes nas linhas) */
+          table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+          tr { page-break-inside: avoid; } /* Impede que uma linha seja dividida em duas páginas */
+          td, th { border: 1px solid #000000; padding: 10px; vertical-align: top; }
+          
+          /* Força a cor de fundo cinza na tabela mesmo na impressão */
+          .destaque { 
+            background-color: #f2f2f2 !important; 
+            font-weight: bold; 
+            width: 30%; 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+          }
+
+          /* 5. FOTOS E MAPA */
+          .foto-legenda, .mapa-estatico { text-align: center; margin: 30px 0; }
+          .foto-legenda img { max-width: 85%; max-height: 450px; border: 1px solid #aaa; border-radius: 4px; object-fit: contain; }
+          .mapa-estatico img { max-width: 85%; border: 1px solid #aaa; border-radius: 4px; }
+          .legenda-texto { font-size: 11pt; font-style: italic; margin-top: 8px; color: #333333; }
+
+          /* 6. CONTROLADORES DE QUEBRA DE PÁGINA */
+          .quebra-pagina {
+            page-break-before: always; /* Começa obrigatoriamente em uma nova página */
+          }
+          
+          .manter-junto {
+            page-break-inside: avoid; /* Impede que o bloco seja fatiado ao meio na transição das folhas */
+          }
+
+          /* 7. ASSINATURA */
+          .assinatura-box {
+            margin-top: 50px;
+            text-align: center;
+          }
         </style>
       </head>
       <body>
@@ -796,6 +849,7 @@
     `);
     win.document.close();
     
+    // Aguarda o carregamento das imagens antes de chamar a impressão
     const imagens = win.document.querySelectorAll('img');
     if (imagens.length > 0) {
       await Promise.all(Array.from(imagens).map(img => {
@@ -803,9 +857,13 @@
         return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; });
       }));
     }
-    win.print();
-    btnPDF.innerHTML = textoOriginal;
-    btnPDF.disabled = false;
+
+    // Um pequeno atraso (500ms) garante que o navegador renderizou o CSS da página antes de "bater a foto" do PDF
+    setTimeout(() => {
+      win.print();
+      btnPDF.innerHTML = textoOriginal;
+      btnPDF.disabled = false;
+    }, 500);
   }
 
   // ----------------------------- Exportar para Word (editável) - CORRIGIDO PARA MOBILE -----------------------------
