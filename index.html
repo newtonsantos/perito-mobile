@@ -204,9 +204,9 @@
       page-break-inside: avoid;
     }
     .laudo .mapa-estatico img {
-      width: 70%;
-      max-width: 500px;
-      max-height: 250px;
+      width: 56%;   /* Reduzido para 80% do tamanho original (70% * 0.8 = 56%) */
+      max-width: 400px;
+      max-height: 220px;
       object-fit: cover;
       border: 1px solid #aaa;
       border-radius: 8px;
@@ -230,7 +230,7 @@
       /* Configurações oficiais da página A4 */
       @page {
         size: A4;
-        margin: 2.5cm 2cm 2.5cm 2cm; /* superior/inferior 2,5cm; laterais 2cm */
+        margin: 2.5cm 2cm 2.5cm 2cm;
       }
       /* Força cores de fundo e bordas na impressão */
       .laudo td, .laudo th {
@@ -255,16 +255,17 @@
         height: auto !important;
         border: 1px solid #000;
       }
-      /* Mapa no PDF: tamanho reduzido e com quebra de página após ele */
+      /* Mapa no PDF: tamanho reduzido (80% do original PDF) e quebra após ele */
       .laudo .mapa-estatico {
-        page-break-after: always; /* força nova página após o mapa */
+        page-break-after: always;
         page-break-inside: avoid;
       }
       .laudo .mapa-estatico img {
-        width: 60% !important;
-        max-width: 400px !important;
-        height: auto !important;
-        max-height: 200px;
+        max-width: 48% !important;   /* 60% * 0.8 = 48% */
+        max-height: 180px !important;
+        width: auto !important;
+        border: 1px solid #000000;
+        border-radius: 4px;
       }
       /* Títulos e tabelas mais compactos */
       .laudo h1 {
@@ -717,16 +718,22 @@
       <h2>1. DADOS DA OCORRÊNCIA</h2>
       <table>
         <tr><td class="destaque">Perito Responsável</td><td>${v('perito')}</td></tr>
-        <tr><td class="destaque">Data da Perícia</td><td>${dataBR(v('data'))} (Início: ${v('horaInicio')} - Término: ${v('horaTermino')})</td></tr>
-        <tr><td class="destaque">Hora do Chamado</td><td>${v('horaChamado')}</td></tr>
-        <tr><td class="destaque">Tipo de Local</td><td>${v('tipoLocal')}</td></tr>
-        <tr><td class="destaque">Natureza</td><td>${v('natureza')}</td></tr>
+        <tr><td class="destaque">Data da Perícia</td><td>${dataBR(v('data'))} (Início: ${v('horaInicio')} - Término: ${v('horaTermino')})</td>
+        <tr>
+        <tr><td class="destaque">Hora do Chamado</td><td>${v('horaChamado')}</td>
+        </tr>
+        <tr><td class="destaque">Tipo de Local</td><td>${v('tipoLocal')}</td>
+        </tr>
+        <tr><td class="destaque">Natureza</td><td>${v('natureza')}</td>
+        </tr>
       </table>
       
       <h2>2. GEOLOCALIZAÇÃO</h2>
       <table>
-        <tr><td class="destaque">Coordenadas</td><td>Latitude: ${v('latitude')} &nbsp; Longitude: ${v('longitude')}</td></tr>
-        <tr><td class="destaque">Endereço aproximado</td><td>${v('endereco') || 'Não informado'}</td></tr>
+        <tr><td class="destaque">Coordenadas</td><td>Latitude: ${v('latitude')} &nbsp; Longitude: ${v('longitude')}</td>
+        </tr>
+        <tr><td class="destaque">Endereço aproximado</td><td>${v('endereco') || 'Não informado'}</td>
+        </tr>
       </table>`;
     
     if (mapaImgBase64) {
@@ -742,9 +749,12 @@
     html += `
       <h2>3. ${labelVitima}</h2>
       <table>
-        <tr><td class="destaque">Descrição</td><td>${v('vitima').replace(/\n/g, '<br>')}</td></tr>
-        <tr><td class="destaque">Organização criminosa / marcações</td><td>${v('organizacao').replace(/\n/g, '<br>')}</td></tr>
-        <tr><td class="destaque">Nº Laudo / requisições</td><td>${v('laudo').replace(/\n/g, '<br>')}</td></tr>
+        <tr><td class="destaque">Descrição</td><td>${v('vitima').replace(/\n/g, '<br>')}</td>
+        </tr>
+        <tr><td class="destaque">Organização criminosa / marcações</td><td>${v('organizacao').replace(/\n/g, '<br>')}</td>
+        </tr>
+        <tr><td class="destaque">Nº Laudo / requisições</td><td>${v('laudo').replace(/\n/g, '<br>')}</td>
+        </tr>
       </table>
       
       <h2>4. VESTÍGIOS COLETADOS</h2>
@@ -908,8 +918,8 @@
             object-fit: contain;
           }
           .mapa-estatico img { 
-            max-width: 60% !important; 
-            max-height: 220px !important;
+            max-width: 48% !important;   /* 80% do tamanho original (60% * 0.8 = 48%) */
+            max-height: 180px !important;
             width: auto !important;
             border: 1px solid #000000; 
             border-radius: 4px; 
