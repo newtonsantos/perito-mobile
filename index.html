@@ -158,6 +158,7 @@
     .laudo {
       font-family: 'Times New Roman', Times, serif;
       line-height: 1.4;
+      color: #000000;
     }
     .laudo h1, .laudo h2 {
       color: #000000; /* Corrigido para preto puro */
@@ -242,12 +243,37 @@
       <div>
         <label>Unidade (CRPT) *</label>
         <select id="crptSelect">
-          <option value="Brumado">Brumado</option>
+          <option value="Alagoinhas">Alagoinhas</option>
+          <option value="Barra (PA)">Barra (PA)</option>
+          <option value="Barreiras">Barreiras</option>
+          <option value="Bom Jesus da Lapa">Bom Jesus da Lapa</option>
+          <option value="Brumado" selected>Brumado</option>
+          <option value="Camaçari">Camaçari</option>
+          <option value="Euclides da Cunha">Euclides da Cunha</option>
+          <option value="Eunápolis">Eunápolis</option>
           <option value="Feira de Santana">Feira de Santana</option>
           <option value="Guanambi">Guanambi</option>
+          <option value="Ilha de Vera Cruz">Ilha de Vera Cruz</option>
+          <option value="Ilhéus">Ilhéus</option>
+          <option value="Irecê">Irecê</option>
+          <option value="Itaberaba">Itaberaba</option>
+          <option value="Itabuna">Itabuna</option>
+          <option value="Itamaraju (PA)">Itamaraju (PA)</option>
           <option value="Itapetinga">Itapetinga</option>
+          <option value="Jacobina">Jacobina</option>
           <option value="Jequié">Jequié</option>
-          <option value="Salvador">Salvador</option>
+          <option value="Juazeiro">Juazeiro</option>
+          <option value="Luis Eduardo Magalhães">Luis Eduardo Magalhães</option>
+          <option value="Paulo Afonso">Paulo Afonso</option>
+          <option value="Porto Seguro">Porto Seguro</option>
+          <option value="Santa Maria da Vitória">Santa Maria da Vitória</option>
+          <option value="Santo Amaro">Santo Amaro</option>
+          <option value="Santo Antônio de Jesus">Santo Antônio de Jesus</option>
+          <option value="Seabra">Seabra</option>
+          <option value="Senhor do Bonfim">Senhor do Bonfim</option>
+          <option value="Serrinha">Serrinha</option>
+          <option value="Teixeira de Freitas">Teixeira de Freitas</option>
+          <option value="Valença">Valença</option>
           <option value="Vitória da Conquista">Vitória da Conquista</option>
           <option value="Outra">Outra (especificar)</option>
         </select>
@@ -750,15 +776,15 @@
         <title>Laudo ${v('idOcorrencia')}</title>
         <style>
           body { font-family: 'Times New Roman', Times, serif; margin: 20px; background: white; color: black; }
-          .laudo { max-width: 900px; margin: 0 auto; }
+          .laudo { max-width: 900px; margin: 0 auto; color: #000000; }
           .laudo table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-          .laudo td, .laudo th { border: 1px solid #000; padding: 8px; vertical-align: top; }
-          .laudo .destaque { background: #f2f2f2; font-weight: bold; width: 30%; }
+          .laudo td, .laudo th { border: 1px solid #000; padding: 8px; vertical-align: top; color: #000000; }
+          .laudo .destaque { background: #f2f2f2; font-weight: bold; width: 30%; color: #000000; }
           .foto-legenda { text-align: center; margin: 30px 0; page-break-inside: avoid; }
           .foto-legenda img { max-width: 70%; border: 1px solid #ccc; border-radius: 8px; }
           .mapa-estatico { text-align: center; margin: 20px 0; }
           .mapa-estatico img { max-width: 80%; border: 1px solid #aaa; border-radius: 8px; }
-          .legenda-texto { font-size: 12px; font-style: italic; margin-top: 8px; }
+          .legenda-texto { font-size: 12px; font-style: italic; margin-top: 8px; color: #000000; }
           h1, h2 { color: #000000; text-align: center; } /* Corrigido para preto puro */
           @media print { body { margin: 0; padding: 10px; } }
         </style>
@@ -805,7 +831,7 @@
         .foto-legenda img { max-width: 70%; border: 1px solid #aaa; }
         .mapa-estatico { text-align: center; margin: 20px 0; }
         .mapa-estatico img { max-width: 80%; border: 1px solid #aaa; }
-        .legenda-texto { font-size: 11px; font-style: italic; margin-top: 5px; }
+        .legenda-texto { font-size: 11px; font-style: italic; margin-top: 5px; color: #000000; }
       </style>
     </head>
     <body>
